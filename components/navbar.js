@@ -2,8 +2,8 @@
  * navbar.js — Top Navigation Bar Component (ES Module)
  */
 
-import { LifeOSDB as db, escapeHtml } from "./db.js";
-import { auth } from "./firebase.js";
+import { LifeOSDB as db, escapeHtml } from "../js/db.js";
+import { auth } from "../js/firebase.js";
 
 (function () {
     const container = document.getElementById("navbar-container");

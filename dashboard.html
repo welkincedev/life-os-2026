@@ -306,11 +306,11 @@
                 <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-5 fade-up">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Now Playing</h3>
-                        <div class="music-waves flex items-end gap-[3px]" id="music-waves">
-                            <div class="w-[3px] rounded-full bg-accent music-bar-1"></div>
-                            <div class="w-[3px] rounded-full bg-accent music-bar-2"></div>
-                            <div class="w-[3px] rounded-full bg-accent music-bar-3"></div>
-                            <div class="w-[3px] rounded-full bg-accent music-bar-1"></div>
+                        <div class="music-waves flex items-end gap-[3px] h-6" id="music-waves">
+                            <div class="w-[3px] h-[6px] rounded-full bg-accent music-bar-1"></div>
+                            <div class="w-[3px] h-[14px] rounded-full bg-accent music-bar-2"></div>
+                            <div class="w-[3px] h-[10px] rounded-full bg-accent music-bar-3"></div>
+                            <div class="w-[3px] h-[6px] rounded-full bg-accent music-bar-1"></div>
                         </div>
                     </div>
 
@@ -697,28 +697,6 @@
                 bar.style.animationPlayState = 'paused';
             });
         });
-
-        function toggleMusicPlay() {
-            const btn = document.getElementById('music-play');
-            musicPlaying = !musicPlaying;
-            btn.textContent = musicPlaying ? '⏸' : '▶';
-            
-            const bars = document.querySelectorAll('.music-bar-1, .music-bar-2, .music-bar-3');
-            bars.forEach(bar => {
-                bar.style.animationPlayState = musicPlaying ? 'running' : 'paused';
-            });
-
-            if (musicPlaying) animateProgress();
-        }
-
-        function animateProgress() {
-            if (!musicPlaying) return;
-            const bar = document.getElementById('music-progress');
-            let width = parseFloat(bar.style.width);
-            if (width >= 100) width = 0;
-            bar.style.width = (width + 0.3) + '%';
-            requestAnimationFrame(() => setTimeout(animateProgress, 100));
-        }
 
         // --- Water Tree ---
         let treeLevel = 3;

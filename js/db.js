@@ -497,7 +497,7 @@ export async function getJournalEntries(count = 20) {
 // ============================
 // EXPOSE GLOBALLY
 // ============================
-window.LifeOSDB = {
+export const LifeOSDB = {
     // Daily Logs
     saveDailyLog,
     getDailyLog,
@@ -522,5 +522,8 @@ window.LifeOSDB = {
     generateDateKeys,
     escapeHtml
 };
+
+// Expose globally for non-module scripts
+window.LifeOSDB = LifeOSDB;
 
 console.log("🗄️ LifeOS Database module loaded");
