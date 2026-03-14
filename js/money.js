@@ -10,12 +10,8 @@
  */
 
 import { db, auth } from "./firebase.js";
-import {
-    collection, addDoc, getDocs, deleteDoc, doc,
-    query, orderBy, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getTodayKey, escapeHtml } from "./db.js";
+import { LifeOSDB, getTodayKey, escapeHtml } from "./db.js";
 
 onAuthStateChanged(auth, (user) => {
     if (user) initMoney(user);
@@ -130,16 +126,17 @@ function initTransactionModal(user) {
             submitBtn.disabled = true;
 
             try {
-                await addDoc(collection(db, "users", user.uid, "transactions"), {
+                const result = await LifeOSDB.addTransaction({
                     type: selectedType,
                     amount,
                     method: selectedMethod,
                     mood: selectedMood,
                     note,
                     category,
-                    date,
-                    createdAt: Timestamp.now()
+                    date
                 });
+
+                if (!result.success) throw new Error(result.error);
 
                 closeModal();
                 form.reset();
@@ -189,12 +186,7 @@ async function loadTransactions(user, filterType = "all") {
     if (!list) return;
 
     try {
-        const q = query(
-            collection(db, "users", user.uid, "transactions"),
-            orderBy("createdAt", "desc")
-        );
-        const snapshot = await getDocs(q);
-
+        const transactions = await LifeOSDB.getTransactions();
         const { start: monthStart, end: monthEnd } = getCurrentMonthRange();
 
         let totalIncome = 0;
@@ -202,10 +194,8 @@ async function loadTransactions(user, filterType = "all") {
         let monthIncome = 0;
         let monthExpenses = 0;
         const categoryTotals = {};
-        const transactions = [];
 
-        snapshot.forEach(docSnap => {
-            const txn = { id: docSnap.id, ...docSnap.data() };
+        transactions.forEach(txn => {
             const txnDate = txn.date || "";
 
             if (txn.type === "income") {
@@ -218,8 +208,6 @@ async function loadTransactions(user, filterType = "all") {
                     categoryTotals[txn.category] = (categoryTotals[txn.category] || 0) + txn.amount;
                 }
             }
-
-            transactions.push(txn);
         });
 
         // --- Update summary cards ---
@@ -360,10 +348,11 @@ function renderCategoryChart(categoryTotals, total) {
 window.deleteTransaction = async function(txnId) {
     if (!confirm("Delete this transaction?")) return;
     try {
-        const user = auth.currentUser;
-        if (!user) return;
-        await deleteDoc(doc(db, "users", user.uid, "transactions", txnId));
-        await loadTransactions(user, document.getElementById("filter-type")?.value || "all");
+        const result = await LifeOSDB.deleteTransaction(txnId);
+        if (result.success) {
+            const user = auth.currentUser;
+            await loadTransactions(user, document.getElementById("filter-type")?.value || "all");
+        }
     } catch (err) {
         console.error("Error deleting transaction:", err);
     }

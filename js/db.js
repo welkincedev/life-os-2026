@@ -497,6 +497,98 @@ export async function getJournalEntries(count = 20) {
 // ============================
 // EXPOSE GLOBALLY
 // ============================
+/**
+ * Add a new transaction.
+ * 
+ * @param {Object} data 
+ * @param {string} data.type - "income" | "expense"
+ * @param {number} data.amount
+ * @param {string} data.method - "upi" | "cash" | "card"
+ * @param {string} data.category
+ * @param {string} data.note
+ * @param {string} data.date - "YYYY-MM-DD"
+ */
+export async function addTransaction(data) {
+    try {
+        const ref = await withTimeout(addDoc(userCollection("transactions"), {
+            ...data,
+            createdAt: serverTimestamp()
+        }), 5000, 'addTransaction');
+        console.log("✅ Transaction saved:", ref.id);
+        return { success: true, id: ref.id };
+    } catch (err) {
+        console.error("❌ Error saving transaction:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Get all transactions, most recent first.
+ * 
+ * @returns {Object[]}
+ */
+export async function getTransactions() {
+    try {
+        const q = query(
+            userCollection("transactions"),
+            orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const txns = [];
+        snap.forEach(d => txns.push({ id: d.id, ...d.data() }));
+        return txns;
+    } catch (err) {
+        console.error("❌ Error getting transactions:", err);
+        return [];
+    }
+}
+
+/**
+ * Get tree stats (level, exp).
+ */
+export async function getTreeStats() {
+    try {
+        const docSnap = await withTimeout(getDoc(userDoc("stats", "tree")), 3000, 'getTreeStats');
+        if (docSnap.exists()) return docSnap.data();
+        return { level: 1, exp: 0 }; // Default
+    } catch (err) {
+        console.error("❌ Error getting tree stats:", err);
+        return { level: 1, exp: 0 };
+    }
+}
+
+/**
+ * Save tree stats.
+ */
+export async function saveTreeStats(stats) {
+    try {
+        await withTimeout(setDoc(userDoc("stats", "tree"), {
+            ...stats,
+            updatedAt: serverTimestamp()
+        }), 5000, 'saveTreeStats');
+        return { success: true };
+    } catch (err) {
+        console.error("❌ Error saving tree stats:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Delete a transaction.
+ */
+export async function deleteTransaction(txnId) {
+    try {
+        await withTimeout(deleteDoc(userDoc("transactions", txnId)), 5000, 'deleteTransaction');
+        return { success: true };
+    } catch (err) {
+        console.error("❌ Error deleting transaction:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+// ============================
+// EXPOSE GLOBALLY
+// ============================
 export const LifeOSDB = {
     // Daily Logs
     saveDailyLog,
@@ -511,9 +603,13 @@ export const LifeOSDB = {
     // Transactions
     addTransaction,
     getTransactions,
+    deleteTransaction,
     // Journal
     saveJournalEntry,
     getJournalEntries,
+    // Tree Stats
+    getTreeStats,
+    saveTreeStats,
     // User
     saveUserProfile,
     // Helpers

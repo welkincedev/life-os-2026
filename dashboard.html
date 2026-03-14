@@ -357,7 +357,7 @@
                 <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 fade-up fade-up-delay-1 relative overflow-hidden">
                     <div class="flex items-center justify-between mb-5 relative z-10">
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Grow Your Tree</h3>
-                        <div class="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] border border-accent/30 text-accent">Lv.3</div>
+                        <div class="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-[10px] border border-accent/30 text-accent font-bold" id="tree-level-badge">Lv.1</div>
                     </div>
 
                     <!-- Environment Display -->
@@ -411,10 +411,10 @@
                         <div>
                             <div class="flex justify-between mb-1.5">
                                 <span class="text-[10px] text-textMuted font-medium tracking-wide">EXP TO NEXT LEVEL</span>
-                                <span class="text-[10px] text-emerald-400 font-bold">65 / 100</span>
+                                <span class="text-[10px] text-emerald-400 font-bold" id="tree-exp-text">0 / 100</span>
                             </div>
                             <div class="w-full h-1.5 bg-base rounded-full overflow-hidden border border-border/30">
-                                <div class="h-full bg-gradient-to-r from-emerald-500 to-accent rounded-full relative overflow-hidden" style="width: 65%">
+                                <div class="h-full bg-gradient-to-r from-emerald-500 to-accent rounded-full relative overflow-hidden transition-all duration-500" id="tree-exp-bar" style="width: 0%">
                                     <div class="absolute top-0 bottom-0 left-0 right-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMMjAgMEwyMCAyMEgwWiIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjIpIi8+PC9zdmc+')] bg-[length:10px_10px] opacity-50"></div>
                                 </div>
                             </div>
@@ -475,7 +475,32 @@
             
             // Wire Live Habits & Finance
             loadDashboardLive(user);
+            
+            // 3. Tree Stats
+            loadDashboardTree(user);
         });
+
+        async function loadDashboardTree(user) {
+            const { getTreeStats } = await import("./js/db.js");
+            const stats = await getTreeStats();
+            updateTreeUI(stats.level || 1, stats.exp || 0);
+        }
+
+        function updateTreeUI(level, exp) {
+            const expToNext = level * 100;
+            const pct = Math.min(100, Math.round((exp / expToNext) * 100));
+            
+            const badge = document.getElementById('tree-level-badge');
+            const text = document.getElementById('tree-exp-text');
+            const bar = document.getElementById('tree-exp-bar');
+            
+            if (badge) badge.textContent = `Lv.${level}`;
+            if (text) text.textContent = `${exp} / ${expToNext}`;
+            if (bar) bar.style.width = `${pct}%`;
+
+            // Cache locally for the water function
+            window.currentTreeStats = { level, exp };
+        }
 
         async function loadDashboardLive(user) {
             try {
@@ -699,20 +724,48 @@
         });
 
         // --- Water Tree ---
-        let treeLevel = 3;
-        const treeCrowns = ['🌱', '🌿', '🪴', '🌳', '🌲', '🎄'];
-        function waterTree() {
+        async function waterTree() {
             const btn = document.getElementById('water-tree-btn');
-            btn.textContent = '✨ Watered!';
+            if (btn.disabled) return;
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✨ Watered!';
+            btn.disabled = true;
             btn.classList.add('bg-accent/30');
+
             const crown = document.getElementById('tree-crown');
-            crown.style.transform = 'scale(1.2)';
-            crown.style.transition = 'transform 0.4s ease';
-            setTimeout(() => {
-                crown.style.transform = 'scale(1)';
-                btn.textContent = '💧 Water Your Tree';
-                btn.classList.remove('bg-accent/30');
-            }, 1500);
+            if (crown) {
+                crown.style.transform = 'scale(1.2)';
+                crown.style.transition = 'transform 0.4s ease';
+            }
+
+            try {
+                const { saveTreeStats } = await import("./js/db.js");
+                let { level, exp } = window.currentTreeStats || { level: 1, exp: 0 };
+                
+                exp += 20;
+                const expToNext = level * 100;
+                
+                if (exp >= expToNext) {
+                    level++;
+                    exp = exp - expToNext;
+                    // Show level up effect or something
+                    console.log("🎉 Level Up!");
+                }
+
+                await saveTreeStats({ level, exp });
+                updateTreeUI(level, exp);
+
+            } catch (err) {
+                console.error("Tree watering error:", err);
+            } finally {
+                setTimeout(() => {
+                    if (crown) crown.style.transform = 'scale(1)';
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-accent/30');
+                    btn.disabled = false;
+                }, 1500);
+            }
         }
     </script>
 </body>

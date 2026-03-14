@@ -14,13 +14,9 @@
  * - Daily writing prompts
  */
 
-import { db, auth } from "./firebase.js";
-import {
-    collection, addDoc, getDocs, updateDoc, deleteDoc, doc,
-    query, orderBy, Timestamp, limit
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { auth } from "./firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getTodayKey, escapeHtml } from "./db.js";
+import { LifeOSDB, getTodayKey, escapeHtml } from "./db.js";
 
 let currentUser = null;
 let allEntries = [];
@@ -113,14 +109,14 @@ window._saveEntry = async function (type) {
     }
 
     try {
-        await addDoc(collection(db, "users", currentUser.uid, "journalEntries"), {
+        const result = await LifeOSDB.saveJournalEntry({
             type,
             title,
             content,
-            date: getTodayKey(),
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now()
+            date: getTodayKey()
         });
+
+        if (!result.success) throw new Error(result.error);
 
         // Clear fields
         if (type === "daily") {
@@ -141,8 +137,7 @@ window._saveEntry = async function (type) {
         console.error("Error saving entry:", err);
         alert("Failed to save entry. Please check your connection.");
     } finally {
-        // Reset button state (specific to type)
-        const btnId = `${type}-save-btn`; // Assuming IDs follow this pattern
+        const btnId = `${type}-save-btn`;
         const btn = document.getElementById(btnId);
         if (btn) {
             btn.textContent = originalText;
@@ -168,14 +163,7 @@ function showSaved(type) {
 // ==========================================
 async function loadEntries() {
     try {
-        const q = query(
-            collection(db, "users", currentUser.uid, "journalEntries"),
-            orderBy("createdAt", "desc"),
-            limit(100)
-        );
-        const snap = await getDocs(q);
-        allEntries = [];
-        snap.forEach(d => allEntries.push({ id: d.id, ...d.data() }));
+        allEntries = await LifeOSDB.getJournalEntries();
         renderEntries();
     } catch (err) {
         console.error("Error loading entries:", err);
@@ -287,8 +275,10 @@ window._deleteEntry = async function (entryId) {
     if (!confirm("Delete this entry? This cannot be undone.")) return;
 
     try {
-        await deleteDoc(doc(db, "users", currentUser.uid, "journalEntries", entryId));
-        await loadEntries();
+        const result = await LifeOSDB.deleteJournalEntry(entryId);
+        if (result.success) {
+            await loadEntries();
+        }
     } catch (err) {
         console.error("Error deleting entry:", err);
     }
@@ -344,14 +334,16 @@ window._updateEntry = async function () {
     }
 
     try {
-        await updateDoc(doc(db, "users", currentUser.uid, "journalEntries", entryId), {
+        const result = await LifeOSDB.saveJournalEntry({
+            id: entryId,
             content,
             title,
-            updatedAt: Timestamp.now()
+            updatedAt: new Date()
         });
-
-        document.getElementById("edit-modal").classList.add("hidden");
-        await loadEntries();
+        if (result.success) {
+            document.getElementById("edit-modal").classList.add("hidden");
+            await loadEntries();
+        }
     } catch (err) {
         console.error("Error updating entry:", err);
     }

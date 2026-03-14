@@ -11,13 +11,9 @@
  * - Streak overview stat cards
  */
 
-import { db, auth } from "./firebase.js";
-import {
-    collection, addDoc, getDocs, updateDoc, deleteDoc, doc,
-    query, orderBy, Timestamp, arrayUnion, arrayRemove
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { auth } from "./firebase.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDateKey, getTodayKey, escapeHtml } from "./db.js";
+import { LifeOSDB, getDateKey, getTodayKey, escapeHtml } from "./db.js";
 
 let currentUser = null;
 let allHabits = [];
@@ -50,19 +46,7 @@ async function refreshAll(user) {
 // LOAD FROM FIRESTORE
 // ==========================================
 async function loadHabitsFromDB(user) {
-    try {
-        const q = query(
-            collection(db, "users", user.uid, "habits"),
-            orderBy("createdAt", "desc")
-        );
-        const snap = await getDocs(q);
-        const habits = [];
-        snap.forEach(d => habits.push({ id: d.id, ...d.data() }));
-        return habits;
-    } catch (err) {
-        console.error("Error loading habits:", err);
-        return [];
-    }
+    return await LifeOSDB.getHabits();
 }
 
 // ==========================================
@@ -324,23 +308,11 @@ function renderHabitList(habits, user) {
 window._toggleHabit = async function (habitId) {
     if (!currentUser) return;
     const today = getTodayKey();
-
     try {
-        const habit = allHabits.find(h => h.id === habitId);
-        if (!habit) return;
-
-        const dates = habit.completedDates || [];
-        const isDone = dates.includes(today);
-        const ref = doc(db, "users", currentUser.uid, "habits", habitId);
-
-        if (isDone) {
-            await updateDoc(ref, { completedDates: arrayRemove(today) });
-        } else {
-            await updateDoc(ref, { completedDates: arrayUnion(today) });
+        const result = await LifeOSDB.toggleHabitCompletion(habitId, today);
+        if (result.success) {
+            await refreshAll(currentUser);
         }
-
-        // Refresh without page reload
-        await refreshAll(currentUser);
     } catch (err) {
         console.error("Error toggling habit:", err);
     }
@@ -354,8 +326,10 @@ window._deleteHabit = async function (habitId) {
     if (!confirm("Delete this habit? This cannot be undone.")) return;
 
     try {
-        await deleteDoc(doc(db, "users", currentUser.uid, "habits", habitId));
-        await refreshAll(currentUser);
+        const result = await LifeOSDB.deleteHabit(habitId);
+        if (result.success) {
+            await refreshAll(currentUser);
+        }
     } catch (err) {
         console.error("Error deleting habit:", err);
     }
@@ -395,14 +369,14 @@ function initModal() {
             submitBtn.disabled = true;
 
             try {
-                await addDoc(collection(db, "users", currentUser.uid, "habits"), {
+                const result = await LifeOSDB.addHabit({
                     name,
                     icon,
                     category: selectedCategory,
-                    frequency,
-                    completedDates: [],
-                    createdAt: Timestamp.now()
+                    frequency
                 });
+
+                if (!result.success) throw new Error(result.error);
 
                 close();
                 form.reset();
