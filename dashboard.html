@@ -121,10 +121,26 @@
 
 
         <!-- ===================== CONTENT BODY ===================== -->
-        <div class="flex-1 flex overflow-hidden pt-16">
+        <div class="flex-1 flex flex-col xl:flex-row overflow-y-auto pt-16">
 
             <!-- ============ MAIN DASHBOARD ============ -->
-            <main class="flex-1 overflow-y-auto p-6 lg:p-8">
+            <main class="flex-1 p-6 lg:p-8">
+
+                <!-- Finance Summary Widget -->
+                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-7 grid grid-cols-3 gap-4 fade-up">
+                    <div class="text-center">
+                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Earned</span>
+                        <p class="text-xl font-bold text-green-400" id="dash-earned">+ ₹0</p>
+                    </div>
+                    <div class="text-center border-l border-r border-border/50">
+                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Spent</span>
+                        <p class="text-xl font-bold text-red-400" id="dash-spent">- ₹0</p>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Net</span>
+                        <p class="text-xl font-bold text-white" id="dash-net">₹0</p>
+                    </div>
+                </div>
 
                 <!-- Today at a Glance Card -->
                 <div class="glow-card bg-card border border-border/50 rounded-3xl p-7 lg:p-8 fade-up">
@@ -271,7 +287,7 @@
 
 
             <!-- ============ RIGHT WIDGET PANEL ============ -->
-            <aside class="hidden xl:block w-[300px] border-l border-border/30 overflow-y-auto p-5 flex-shrink-0 bg-base/40">
+            <aside class="w-full xl:w-[300px] border-t xl:border-t-0 xl:border-l border-border/30 p-5 flex-shrink-0 bg-base/40 pb-20 xl:pb-5">
 
                 <!-- Music Widget -->
                 <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-5 fade-up">
@@ -442,10 +458,10 @@
                 const income = thisMonth.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const expense = thisMonth.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 
-                // Target the values directly by searching for the labels
-                const spentEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Spent')?.nextElementSibling;
-                const earnedEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Earned')?.nextElementSibling;
-                const netEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Net')?.nextElementSibling;
+                // Target the values directly by their IDs
+                const spentEl = document.getElementById('dash-spent');
+                const earnedEl = document.getElementById('dash-earned');
+                const netEl = document.getElementById('dash-net');
                 
                 if (spentEl) spentEl.textContent = `- ₹${expense.toLocaleString()}`;
                 if (earnedEl) earnedEl.textContent = `+ ₹${income.toLocaleString()}`;
@@ -468,52 +484,58 @@
         // --- Save Check-in Button ---
         document.getElementById('save-dashboard-btn')?.addEventListener('click', async () => {
             const btn = document.getElementById('save-dashboard-btn');
+            const originalText = btn.textContent;
             btn.textContent = 'Saving...';
             btn.disabled = true;
 
-            // Collect current selections
-            const mood = document.querySelector('.mood-btn.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
-            const energy = document.querySelector('.energy-pill.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
-            const feelings = [...document.querySelectorAll('.feeling-tag.selected')].map(b =>
-                b.textContent.trim().split(' ').pop().toLowerCase()
-            );
-            const task = document.getElementById('today-task')?.value || '';
-            const note = document.getElementById('quick-note')?.value || '';
+            try {
+                // Collect current selections
+                const mood = document.querySelector('.mood-btn.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
+                const energy = document.querySelector('.energy-pill.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
+                const feelings = [...document.querySelectorAll('.feeling-tag.selected')].map(b =>
+                    b.textContent.trim().split(' ').pop().toLowerCase()
+                );
+                const task = document.getElementById('today-task')?.value || '';
+                const note = document.getElementById('quick-note')?.value || '';
 
-            // Collect checked habits
-            const habitsCompleted = [];
-            document.querySelectorAll('.habit-checkbox.checked').forEach(box => {
-                const label = box.closest('.flex')?.querySelector('p')?.textContent?.trim();
-                if (label) habitsCompleted.push(label);
-            });
+                // Collect checked habits
+                const habitsCompleted = [];
+                document.querySelectorAll('.habit-checkbox.checked').forEach(box => {
+                    const label = box.closest('.flex')?.querySelector('p')?.textContent?.trim();
+                    if (label) habitsCompleted.push(label);
+                });
 
-            const result = await saveDailyLog({
-                mood, energy, feelings, task, note, habitsCompleted
-            });
+                const result = await saveDailyLog({
+                    mood, energy, feelings, task, note, habitsCompleted
+                });
 
-            if (result.success) {
-                btn.textContent = '✓ Saved!';
-                btn.classList.add('bg-accent/80');
+                if (result.success) {
+                    btn.textContent = '✓ Saved!';
+                    btn.classList.add('bg-accent/80');
 
-                // Update save indicator
-                const saveIndicator = document.querySelector('.soft-pulse')?.parentElement;
-                if (saveIndicator) {
-                    saveIndicator.innerHTML = `
-                        <span class="w-1.5 h-1.5 rounded-full bg-accent soft-pulse"></span>
-                        Last saved just now
-                    `;
+                    // Update save indicator
+                    const saveIndicator = document.querySelector('.soft-pulse')?.parentElement;
+                    if (saveIndicator) {
+                        saveIndicator.innerHTML = `
+                            <span class="w-1.5 h-1.5 rounded-full bg-accent soft-pulse"></span>
+                            Last saved just now
+                        `;
+                    }
+
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('bg-accent/80');
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error("Save returned false");
                 }
-
-                setTimeout(() => {
-                    btn.textContent = 'Save Check-in ✓';
-                    btn.classList.remove('bg-accent/80');
-                    btn.disabled = false;
-                }, 2000);
-            } else {
+            } catch (err) {
+                console.error("Dashboard check-in save error:", err);
                 btn.textContent = '✗ Error — retry';
                 btn.classList.add('bg-red-500');
                 setTimeout(() => {
-                    btn.textContent = 'Save Check-in ✓';
+                    btn.textContent = originalText;
                     btn.classList.remove('bg-red-500');
                     btn.disabled = false;
                 }, 2000);
@@ -589,10 +611,24 @@
 
         // --- Music ---
         let musicPlaying = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.music-bar-1, .music-bar-2, .music-bar-3');
+            bars.forEach(bar => {
+                bar.style.animationPlayState = 'paused';
+            });
+        });
+
         function toggleMusicPlay() {
             const btn = document.getElementById('music-play');
             musicPlaying = !musicPlaying;
             btn.textContent = musicPlaying ? '⏸' : '▶';
+            
+            const bars = document.querySelectorAll('.music-bar-1, .music-bar-2, .music-bar-3');
+            bars.forEach(bar => {
+                bar.style.animationPlayState = musicPlaying ? 'running' : 'paused';
+            });
+
             if (musicPlaying) animateProgress();
         }
 

@@ -163,9 +163,11 @@ function initTransactionModal(user) {
                 await loadTransactions(user);
             } catch (err) {
                 console.error("Error adding transaction:", err);
+                alert("Failed to save transaction. Please check your connection.");
             } finally {
                 submitBtn.textContent = "Save Transaction";
                 submitBtn.disabled = false;
+                closeModal(); // Ensure modal closes even on error to prevent being stuck
             }
         });
     }

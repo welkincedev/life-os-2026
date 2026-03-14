@@ -46,7 +46,7 @@
                     </div>
 
                     <!-- Search (placeholder) -->
-                    <button class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition">
+                    <button onclick="alert('Search functionality coming soon!')" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition">
                         🔍 Search...
                         <kbd class="text-[10px] bg-card border border-border px-1.5 py-0.5 rounded ml-2">⌘K</kbd>
                     </button>
@@ -73,7 +73,7 @@
                         <button id="user-menu-btn" class="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-indigo-600 flex items-center justify-center text-sm font-bold text-base shadow-lg transition active:scale-95" onclick="toggleProfileDropdown()">
                             ?
                         </button>
-                        <div id="profile-dropdown" class="profile-dropdown absolute right-0 top-12 bg-card border border-border rounded-xl shadow-2xl p-2 min-w-[200px] z-50">
+                        <div id="profile-dropdown" class="profile-dropdown absolute right-0 top-12 bg-card border border-border rounded-xl shadow-2xl p-2 min-w-[200px] hidden z-50">
                             <div class="px-3 py-2.5 border-b border-border/30 mb-1">
                                 <p id="profile-user-name" class="text-sm font-semibold">User</p>
                                 <p id="profile-user-email" class="text-[11px] text-textMuted">loading...</p>

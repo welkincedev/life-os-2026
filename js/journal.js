@@ -138,6 +138,12 @@ window._saveEntry = async function (type) {
         await loadEntries();
     } catch (err) {
         console.error("Error saving entry:", err);
+        alert("Failed to save entry. Please check your connection.");
+    } finally {
+        if (btn) {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
     }
 };
 

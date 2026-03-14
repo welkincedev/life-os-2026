@@ -419,9 +419,11 @@ function initModal() {
                 await refreshAll(currentUser);
             } catch (err) {
                 console.error("Error adding habit:", err);
+                alert("Failed to save habit. Please check your connection.");
             } finally {
                 submitBtn.textContent = "Save Habit";
                 submitBtn.disabled = false;
+                close(); // Ensure modal closes even on error to prevent being stuck
             }
         });
     }
