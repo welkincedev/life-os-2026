@@ -494,54 +494,6 @@ export async function getJournalEntries(count = 20) {
     }
 }
 
-// ============================
-// EXPOSE GLOBALLY
-// ============================
-/**
- * Add a new transaction.
- * 
- * @param {Object} data 
- * @param {string} data.type - "income" | "expense"
- * @param {number} data.amount
- * @param {string} data.method - "upi" | "cash" | "card"
- * @param {string} data.category
- * @param {string} data.note
- * @param {string} data.date - "YYYY-MM-DD"
- */
-export async function addTransaction(data) {
-    try {
-        const ref = await withTimeout(addDoc(userCollection("transactions"), {
-            ...data,
-            createdAt: serverTimestamp()
-        }), 5000, 'addTransaction');
-        console.log("✅ Transaction saved:", ref.id);
-        return { success: true, id: ref.id };
-    } catch (err) {
-        console.error("❌ Error saving transaction:", err);
-        return { success: false, error: err.message };
-    }
-}
-
-/**
- * Get all transactions, most recent first.
- * 
- * @returns {Object[]}
- */
-export async function getTransactions() {
-    try {
-        const q = query(
-            userCollection("transactions"),
-            orderBy("createdAt", "desc")
-        );
-        const snap = await getDocs(q);
-        const txns = [];
-        snap.forEach(d => txns.push({ id: d.id, ...d.data() }));
-        return txns;
-    } catch (err) {
-        console.error("❌ Error getting transactions:", err);
-        return [];
-    }
-}
 
 /**
  * Get tree stats (level, exp).

@@ -1,15 +1,9 @@
 /**
  * sidebar.js — Sidebar Navigation Component
- * 
- * Injects a consistent left sidebar across all pages.
- * Highlights the active page link.
- * Collapses on mobile, toggleable via navbar hamburger.
  */
 
-(function () {
-    const container = document.getElementById("sidebar-container");
-    if (!container) return;
-
+const sidebarContainer = document.getElementById("sidebar-container");
+if (sidebarContainer) {
     const currentPage = window.location.pathname.split("/").pop() || "dashboard.html";
 
     const links = [
@@ -21,8 +15,8 @@
         { href: "insights.html", icon: "📊", label: "Insights" },
     ];
 
-    container.innerHTML = `
-        <aside class="sidebar-container fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border/50 z-30 overflow-y-auto">
+    sidebarContainer.innerHTML = `
+        <aside id="sidebar-aside" class="sidebar-container fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border/50 z-30 overflow-y-auto transition-all duration-300">
             <nav class="p-4 space-y-1 mt-2">
                 ${links.map(link => {
                     const isActive = currentPage === link.href;
@@ -50,4 +44,4 @@
             </div>
         </aside>
     `;
-})();
+}

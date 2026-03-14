@@ -5,12 +5,10 @@
 import { LifeOSDB as db, escapeHtml } from "../js/db.js";
 import { auth } from "../js/firebase.js";
 
-(function () {
-    const container = document.getElementById("navbar-container");
-    if (!container) return;
+const navContainer = document.getElementById("navbar-container");
 
+if (navContainer) {
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
-
     const pageTitles = {
         "dashboard.html": "Dashboard",
         "habits.html": "Habits",
@@ -20,12 +18,12 @@ import { auth } from "../js/firebase.js";
         "insights.html": "Insights"
     };
 
-    container.innerHTML = `
+    navContainer.innerHTML = `
         <nav class="fixed top-0 left-0 right-0 z-40 bg-card/80 backdrop-blur-xl border-b border-border/50">
             <div class="flex items-center justify-between px-6 py-3">
                 <!-- Left: Menu toggle + Logo -->
                 <div class="flex items-center gap-4">
-                    <button id="menu-toggle" class="md:hidden text-gray-400 hover:text-white text-xl">
+                    <button id="menu-toggle" class="lg:hidden text-gray-400 hover:text-white text-xl">
                         ☰
                     </button>
                     <a href="dashboard.html" class="flex items-center gap-2">
@@ -39,20 +37,25 @@ import { auth } from "../js/firebase.js";
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-4">
-                    <!-- Weather (compact, populated by weather.js) -->
+                    <!-- Weather (compact) -->
                     <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800/50 border border-gray-700/50 text-sm">
                         <span class="weather-icon text-base">🌡️</span>
                         <span id="nav-weather-text" class="text-gray-400 text-xs font-medium">Loading...</span>
                     </div>
 
-                    <!-- Search -->
-                    <div class="relative">
-                        <button onclick="toggleSearch()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition group">
+                    <!-- Search (desktop) -->
+                    <div class="relative hidden md:block">
+                        <button onclick="toggleSearch()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition group">
                             <span class="group-hover:scale-110 transition-transform">🔍</span> 
                             <span>Search...</span>
                             <kbd class="text-[10px] bg-card border border-border px-1.5 py-0.5 rounded ml-2 group-hover:bg-border transition">⌘K</kbd>
                         </button>
                     </div>
+
+                    <!-- Search (mobile) -->
+                    <button onclick="toggleSearch()" class="md:hidden w-9 h-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-textSecondary hover:text-textPrimary transition">
+                        🔍
+                    </button>
 
                     <!-- Notifications -->
                     <div class="relative">
@@ -86,8 +89,6 @@ import { auth } from "../js/firebase.js";
                             <button onclick="window.lifeosSignOut()" class="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/[0.04] rounded-lg transition mt-1">🚪 Sign Out</button>
                         </div>
                     </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -112,7 +113,7 @@ import { auth } from "../js/firebase.js";
         </nav>
     `;
 
-    // --- Global Click Listeners for Dropdowns ---
+    // --- Global Click Listeners ---
     window.toggleProfileDropdown = () => document.getElementById('profile-dropdown')?.classList.toggle('hidden');
     window.toggleNotifications = () => document.getElementById('notif-dropdown')?.classList.toggle('hidden');
 
@@ -149,13 +150,12 @@ import { auth } from "../js/firebase.js";
             return;
         }
 
-        const db = window.LifeOSDB;
-        if (!db) return;
+        const dbRef = window.LifeOSDB;
+        if (!dbRef) return;
 
         resultsEl.innerHTML = `<div class="p-8 text-center text-textMuted animate-pulse text-sm">Searching...</div>`;
 
         try {
-            // Fetch relevant data in parallel
             const [habits, journal, transactions] = await Promise.all([
                 db.getHabits(),
                 db.getJournalEntries(50),
@@ -165,21 +165,18 @@ import { auth } from "../js/firebase.js";
             const q = query.toLowerCase();
             const results = [];
 
-            // Search habits
             habits.forEach(h => {
                 if (h.name.toLowerCase().includes(q)) {
                     results.push({ type: 'habit', title: h.name, subtitle: `${h.frequency} habit`, icon: h.icon || '✅', link: 'habits.html' });
                 }
             });
 
-            // Search journal
             journal.forEach(e => {
                 if (e.title.toLowerCase().includes(q) || e.content.toLowerCase().includes(q)) {
                     results.push({ type: 'journal', title: e.title, subtitle: e.content.substring(0, 60) + '...', icon: '📝', link: 'journal.html' });
                 }
             });
 
-            // Search finance
             transactions.forEach(t => {
                 const note = (t.note || t.description || "").toLowerCase();
                 if (note.includes(q) || t.category.toLowerCase().includes(q)) {
@@ -201,7 +198,6 @@ import { auth } from "../js/firebase.js";
                         <p class="text-sm font-semibold text-textPrimary truncate">${escapeHtml(r.title)}</p>
                         <p class="text-[11px] text-textMuted truncate">${escapeHtml(r.subtitle)}</p>
                     </div>
-                    <span class="text-textMuted opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                 </a>
             `).join("");
 
@@ -226,20 +222,30 @@ import { auth } from "../js/firebase.js";
     // Mobile sidebar toggle
     const menuToggle = document.getElementById("menu-toggle");
     if (menuToggle) {
-        menuToggle.addEventListener("click", () => {
-            const sidebar = document.querySelector(".sidebar-container");
-            if (sidebar) sidebar.classList.toggle("open");
-        });
+        menuToggle.onclick = () => {
+            const sidebarAside = document.getElementById("sidebar-aside");
+            if (sidebarAside) {
+                sidebarAside.classList.toggle("open");
+            }
+        };
     }
 
-    // Set user initial from auth (if already set)
+    // Set user initial/profile from global state
     const user = window.LifeOS?.user;
     if (user) {
         const initial = user.displayName?.[0] || user.email?.[0] || "?";
         const btn = document.getElementById("user-menu-btn");
         if (btn) btn.textContent = initial.toUpperCase();
         
-        const nameEl = document.getElementById("profile-user-name"); // fix ID based on template above
+        const nameEl = document.getElementById("profile-user-name");
         if (nameEl) nameEl.textContent = user.displayName || user.email?.split('@')[0] || "User";
+        
+        const emailEl = document.getElementById("profile-user-email");
+        if (emailEl) emailEl.textContent = user.email || "";
     }
-})();
+
+    // Refresh weather display in the new navbar
+    if (typeof window.refreshWeatherUI === "function") {
+        window.refreshWeatherUI();
+    }
+}

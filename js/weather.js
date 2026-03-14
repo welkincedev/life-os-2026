@@ -165,6 +165,12 @@ function updateUI(weather) {
     document.querySelectorAll(".weather-city").forEach(el => el.textContent = weather.city);
 }
 
+// Global hook for components to refresh weather UI after injection
+window.refreshWeatherUI = function() {
+    const cached = getCachedWeather();
+    if (cached) updateUI(cached);
+};
+
 function setText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;

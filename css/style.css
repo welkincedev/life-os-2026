@@ -163,12 +163,15 @@ a, button, input, select, textarea {
 }
 
 /* --- Responsive --- */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .sidebar-container {
         transform: translateX(-100%);
-        transition: transform 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 60; /* Above navbar on mobile */
+        box-shadow: 20px 0 60px rgba(0,0,0,0.5);
     }
     .sidebar-container.open {
         transform: translateX(0);
+        display: block !important;
     }
 }
