@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS — Dashboard</title>
+    <meta name="description" content="Your LifeOS command center — habits, mood, finances, and more at a glance.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#0f172a',
+                        card: '#1e293b',
+                        cardHover: '#263549',
+                        accent: '#22c55e',
+                        accentDim: 'rgba(34, 197, 94, 0.12)',
+                        textPrimary: '#e2e8f0',
+                        textSecondary: '#94a3b8',
+                        textMuted: '#64748b',
+                        border: '#334155',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Sidebar link hover glow */
+        .nav-link { position: relative; transition: all 0.25s ease; }
+        .nav-link::before {
+            content: '';
+            position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: #22c55e; border-radius: 0 3px 3px 0;
+            transform: scaleY(0); transition: transform 0.25s ease;
+        }
+        .nav-link.active::before, .nav-link:hover::before { transform: scaleY(1); }
+        .nav-link.active { background: rgba(34, 197, 94, 0.08); color: #22c55e; }
+
+        /* Mood button */
+        .mood-btn { transition: all 0.2s ease; }
+        .mood-btn:hover { transform: scale(1.15); }
+        .mood-btn.selected { transform: scale(1.2); filter: drop-shadow(0 0 10px rgba(34,197,94,0.4)); }
+
+        /* Energy pill */
+        .energy-pill { transition: all 0.2s ease; }
+        .energy-pill.selected { background: #22c55e !important; color: #0f172a !important; font-weight: 600; box-shadow: 0 0 20px rgba(34,197,94,0.25); }
+
+        /* Feeling tag */
+        .feeling-tag { transition: all 0.2s ease; }
+        .feeling-tag.selected { background: rgba(34,197,94,0.15) !important; border-color: #22c55e !important; color: #22c55e !important; }
+
+        /* Checkbox animation */
+        .habit-checkbox { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .habit-checkbox.checked { background: #22c55e; border-color: #22c55e; }
+        .habit-checkbox.checked::after {
+            content: '✓'; color: #0f172a; font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Card glow on hover */
+        .glow-card { transition: all 0.3s ease; }
+        .glow-card:hover { box-shadow: 0 0 30px rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.2); }
+
+        /* Pulse */
+        @keyframes softPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        .soft-pulse { animation: softPulse 3s ease-in-out infinite; }
+
+        /* Tree grow */
+        @keyframes treeGrow { 0% { transform: scaleY(0.5); opacity:0.5; } 100% { transform: scaleY(1); opacity:1; } }
+        .tree-grow { animation: treeGrow 0.6s ease-out forwards; transform-origin: bottom; }
+
+        /* music bar animation */
+        @keyframes musicBar1 { 0%,100% { height: 6px; } 50% { height: 18px; } }
+        @keyframes musicBar2 { 0%,100% { height: 14px; } 50% { height: 6px; } }
+        @keyframes musicBar3 { 0%,100% { height: 10px; } 50% { height: 22px; } }
+        .music-bar-1 { animation: musicBar1 0.8s ease-in-out infinite; }
+        .music-bar-2 { animation: musicBar2 0.7s ease-in-out infinite; }
+        .music-bar-3 { animation: musicBar3 0.9s ease-in-out infinite; }
+
+        /* Fade in */
+        @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        .fade-up-delay-1 { animation-delay: 0.05s; opacity: 0; }
+        .fade-up-delay-2 { animation-delay: 0.1s; opacity: 0; }
+        .fade-up-delay-3 { animation-delay: 0.15s; opacity: 0; }
+        .fade-up-delay-4 { animation-delay: 0.2s; opacity: 0; }
+
+        /* Profile dropdown */
+        .profile-dropdown { display: none; }
+        .profile-dropdown.show { display: block; }
+
+        /* Progress ring */
+        .progress-ring-circle { transition: stroke-dashoffset 0.6s ease; transform: rotate(-90deg); transform-origin: 50% 50%; }
+    </style>
+</head>
+<body class="bg-base text-textPrimary min-h-screen flex overflow-hidden">
+
+    <!-- ===================== LEFT SIDEBAR ===================== -->
+    <div id="sidebar-container"></div>
+
+
+    <!-- ===================== MAIN AREA ===================== -->
+    <div class="flex-1 flex flex-col min-h-screen overflow-hidden lg:pl-64">
+
+        <!-- ===================== TOP HEADER ===================== -->
+        <div id="navbar-container"></div>
+
+
+        <!-- ===================== CONTENT BODY ===================== -->
+        <div class="flex-1 flex overflow-hidden pt-16">
+
+            <!-- ============ MAIN DASHBOARD ============ -->
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8">
+
+                <!-- Today at a Glance Card -->
+                <div class="glow-card bg-card border border-border/50 rounded-3xl p-7 lg:p-8 fade-up">
+                    <!-- Card Header -->
+                    <div class="flex items-center justify-between mb-7">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
+                                <span class="text-xl">🌅</span>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold tracking-tight">Today at a Glance</h2>
+                                <p class="text-xs text-textMuted mt-0.5">Track your day, one moment at a time</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-textMuted bg-base px-3 py-1 rounded-full border border-border/30">
+                                Auto-saves
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- ---- HABIT CHECKLIST ---- -->
+                    <div class="mb-7 fade-up fade-up-delay-1">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center text-[10px]">✅</span>
+                            Today's Habits
+                        </h3>
+                        <div class="space-y-2.5">
+                            <!-- Gym -->
+                            <div class="flex items-center gap-4 px-4 py-3 rounded-xl bg-base/50 border border-border/20 hover:border-border/40 transition group cursor-pointer" onclick="toggleHabitCheck(this)">
+                                <div class="habit-checkbox w-6 h-6 rounded-lg border-2 border-border flex items-center justify-center flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium group-hover:text-textPrimary transition">🏋️ Gym</p>
+                                </div>
+                                <span class="text-[10px] text-textMuted px-2 py-0.5 rounded-full bg-card border border-border/30">Morning</span>
+                            </div>
+                            <!-- Study -->
+                            <div class="flex items-center gap-4 px-4 py-3 rounded-xl bg-base/50 border border-border/20 hover:border-border/40 transition group cursor-pointer" onclick="toggleHabitCheck(this)">
+                                <div class="habit-checkbox w-6 h-6 rounded-lg border-2 border-border flex items-center justify-center flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium group-hover:text-textPrimary transition">📚 Study</p>
+                                </div>
+                                <span class="text-[10px] text-textMuted px-2 py-0.5 rounded-full bg-card border border-border/30">Afternoon</span>
+                            </div>
+                            <!-- Read -->
+                            <div class="flex items-center gap-4 px-4 py-3 rounded-xl bg-base/50 border border-border/20 hover:border-border/40 transition group cursor-pointer" onclick="toggleHabitCheck(this)">
+                                <div class="habit-checkbox w-6 h-6 rounded-lg border-2 border-border flex items-center justify-center flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium group-hover:text-textPrimary transition">📖 Read</p>
+                                </div>
+                                <span class="text-[10px] text-textMuted px-2 py-0.5 rounded-full bg-card border border-border/30">Evening</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="h-px bg-border/20 my-6"></div>
+
+                    <!-- ---- MOOD + ENERGY + FEELINGS ---- -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-7 fade-up fade-up-delay-2">
+                        <!-- Mood Selector -->
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-yellow-500/10 flex items-center justify-center text-[10px]">😊</span>
+                                Mood
+                            </h3>
+                            <div class="flex items-center gap-3">
+                                <button class="mood-btn text-3xl p-2 rounded-xl hover:bg-accent/10 transition" onclick="selectMood(this, 'happy')" title="Happy">🙂</button>
+                                <button class="mood-btn text-3xl p-2 rounded-xl hover:bg-yellow-500/10 transition" onclick="selectMood(this, 'neutral')" title="Neutral">😐</button>
+                                <button class="mood-btn text-3xl p-2 rounded-xl hover:bg-red-500/10 transition" onclick="selectMood(this, 'sad')" title="Sad">😞</button>
+                            </div>
+                            <p id="mood-label" class="text-[11px] text-textMuted mt-2 h-4"></p>
+                        </div>
+
+                        <!-- Energy Selector -->
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center text-[10px]">⚡</span>
+                                Energy
+                            </h3>
+                            <div class="flex gap-2">
+                                <button class="energy-pill px-4 py-2 rounded-xl bg-base border border-border/40 text-sm text-textSecondary hover:border-accent/40 transition" onclick="selectEnergy(this, 'low')">Low</button>
+                                <button class="energy-pill px-4 py-2 rounded-xl bg-base border border-border/40 text-sm text-textSecondary hover:border-accent/40 transition" onclick="selectEnergy(this, 'medium')">Medium</button>
+                                <button class="energy-pill px-4 py-2 rounded-xl bg-base border border-border/40 text-sm text-textSecondary hover:border-accent/40 transition" onclick="selectEnergy(this, 'high')">High</button>
+                            </div>
+                        </div>
+
+                        <!-- Feeling Tags -->
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-purple-500/10 flex items-center justify-center text-[10px]">🏷️</span>
+                                Feeling
+                            </h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="feeling-tag px-3 py-1.5 rounded-full bg-base border border-border/40 text-xs text-textSecondary hover:border-accent/40 transition" onclick="toggleFeeling(this)">☁️ Calm</button>
+                                <button class="feeling-tag px-3 py-1.5 rounded-full bg-base border border-border/40 text-xs text-textSecondary hover:border-accent/40 transition" onclick="toggleFeeling(this)">🔥 Busy</button>
+                                <button class="feeling-tag px-3 py-1.5 rounded-full bg-base border border-border/40 text-xs text-textSecondary hover:border-accent/40 transition" onclick="toggleFeeling(this)">⚡ Productive</button>
+                                <button class="feeling-tag px-3 py-1.5 rounded-full bg-base border border-border/40 text-xs text-textSecondary hover:border-accent/40 transition" onclick="toggleFeeling(this)">🪨 Heavy</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="h-px bg-border/20 my-6"></div>
+
+                    <!-- ---- TASK + QUICK NOTE ---- -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-up fade-up-delay-3">
+                        <!-- One Task -->
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-blue-500/10 flex items-center justify-center text-[10px]">🎯</span>
+                                One Task for Today
+                            </h3>
+                            <div class="relative">
+                                <input type="text" id="today-task" placeholder="What's the ONE thing you must do today?"
+                                    class="w-full px-4 py-3.5 rounded-xl bg-base border border-border/30 text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition">
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted/40 text-xs">⏎</div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Note -->
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3 flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-md bg-cyan-500/10 flex items-center justify-center text-[10px]">💭</span>
+                                Quick Note
+                            </h3>
+                            <textarea id="quick-note" rows="2" placeholder="Any thoughts on your mind..."
+                                class="w-full px-4 py-3 rounded-xl bg-base border border-border/30 text-sm text-textPrimary placeholder-textMuted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Save Bar -->
+                    <div class="flex items-center justify-between mt-7 pt-5 border-t border-border/20 fade-up fade-up-delay-4">
+                        <p class="text-[11px] text-textMuted flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-accent soft-pulse"></span>
+                            Last saved 2 mins ago
+                        </p>
+                        <button id="save-dashboard-btn" class="px-6 py-2.5 rounded-xl bg-accent hover:bg-accent/90 text-base text-sm font-semibold transition hover:shadow-lg hover:shadow-accent/20 active:scale-[0.97]">
+                            Save Check-in ✓
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+
+            <!-- ============ RIGHT WIDGET PANEL ============ -->
+            <aside class="hidden xl:block w-[300px] border-l border-border/30 overflow-y-auto p-5 flex-shrink-0 bg-base/40">
+
+                <!-- Music Widget -->
+                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-5 fade-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Now Playing</h3>
+                        <div class="flex items-end gap-[3px]">
+                            <div class="w-[3px] rounded-full bg-accent music-bar-1"></div>
+                            <div class="w-[3px] rounded-full bg-accent music-bar-2"></div>
+                            <div class="w-[3px] rounded-full bg-accent music-bar-3"></div>
+                            <div class="w-[3px] rounded-full bg-accent music-bar-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Album Art -->
+                    <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-accent/20 via-emerald-800/30 to-teal-900/40 mb-4 flex items-center justify-center border border-accent/10 overflow-hidden relative">
+                        <div class="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
+                        <span class="text-5xl relative z-10">🌧️</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="font-semibold text-sm truncate">Gentle Rain & Thunder</p>
+                        <p class="text-xs text-textMuted truncate">Nature Ambience</p>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="mb-3">
+                        <div class="w-full h-1 bg-base rounded-full overflow-hidden">
+                            <div class="h-full bg-accent rounded-full transition-all" id="music-progress" style="width: 35%"></div>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-[10px] text-textMuted">1:23</span>
+                            <span class="text-[10px] text-textMuted">3:45</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex items-center justify-center gap-5">
+                        <button class="text-textMuted hover:text-textPrimary transition text-sm" id="music-prev">⏮</button>
+                        <button class="w-11 h-11 rounded-full bg-accent hover:bg-accent/90 flex items-center justify-center text-base text-lg transition hover:scale-105 active:scale-95 shadow-lg shadow-accent/20" id="music-play" onclick="toggleMusicPlay()">▶</button>
+                        <button class="text-textMuted hover:text-textPrimary transition text-sm" id="music-next">⏭</button>
+                    </div>
+
+                    <!-- Volume -->
+                    <div class="flex items-center gap-2 mt-4">
+                        <span class="text-xs text-textMuted">🔈</span>
+                        <input type="range" min="0" max="100" value="60" class="flex-1 h-1 accent-accent rounded-full">
+                        <span class="text-xs text-textMuted">🔊</span>
+                    </div>
+                </div>
+
+                <!-- Grow Your Tree Game -->
+                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 fade-up fade-up-delay-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Grow Your Tree</h3>
+                        <span class="text-lg">🌳</span>
+                    </div>
+
+                    <!-- Tree Display -->
+                    <div class="w-full aspect-[4/3] rounded-2xl bg-gradient-to-b from-base via-base to-emerald-950/30 mb-4 flex flex-col items-center justify-end pb-4 border border-border/20 relative overflow-hidden">
+                        <!-- Sky stars -->
+                        <div class="absolute top-3 left-4 w-1 h-1 rounded-full bg-white/20"></div>
+                        <div class="absolute top-6 right-6 w-0.5 h-0.5 rounded-full bg-white/30"></div>
+                        <div class="absolute top-4 left-1/2 w-0.5 h-0.5 rounded-full bg-white/20"></div>
+
+                        <!-- Tree -->
+                        <div class="tree-grow flex flex-col items-center" id="tree-display">
+                            <!-- Leaves -->
+                            <div class="text-4xl mb-[-8px]" id="tree-crown">🌿</div>
+                            <!-- Trunk -->
+                            <div class="w-2 h-10 bg-amber-800 rounded-sm"></div>
+                        </div>
+
+                        <!-- Ground -->
+                        <div class="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-emerald-900/20 to-transparent"></div>
+                    </div>
+
+                    <!-- Tree Stats -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-textSecondary">Level</span>
+                            <span class="text-xs font-semibold text-accent">Sapling (Lv. 3)</span>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-[10px] text-textMuted">Growth Progress</span>
+                                <span class="text-[10px] text-accent font-medium">65%</span>
+                            </div>
+                            <div class="w-full h-2 bg-base rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-accent to-emerald-400 rounded-full" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-textMuted text-center italic">Complete habits to grow your tree 🌱</p>
+                    </div>
+
+                    <!-- Water Button -->
+                    <button id="water-tree-btn" class="w-full mt-4 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent text-sm font-medium hover:bg-accent/20 transition active:scale-[0.97]" onclick="waterTree()">
+                        💧 Water Your Tree
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+
+    <!-- ===================== FIREBASE + DB (ES Modules) ===================== -->
+    <script type="module" src="js/firebase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/db.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/sidebar.js"></script>
+    <script src="js/weather.js"></script>
+
+    <!-- Wire DB into dashboard -->
+    <script type="module">
+        import { auth } from "./js/firebase.js";
+        import { saveDailyLog, getDailyLog, saveUserProfile } from "./js/db.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        // Wait for auth, then load today's log & save user profile
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+
+            // Save/update user profile on each visit
+            await saveUserProfile(user);
+
+            // Load today's existing data
+            const log = await getDailyLog();
+            if (log) {
+                // Restore values... (same logic as before)
+            }
+            
+            // Wire Live Habits & Finance
+            loadDashboardLive(user);
+        });
+
+        async function loadDashboardLive(user) {
+            try {
+                // 1. Live Habits
+                const { getHabits } = await import("./js/db.js");
+                const habits = await getHabits();
+                const habitGrid = document.querySelector('.grid.grid-cols-2.gap-4'); // Desktop habits grid
+                if (habitGrid && habits.length > 0) {
+                    habitGrid.innerHTML = habits.slice(0, 4).map(h => {
+                        const done = (h.completedDates || []).includes(new Date().toISOString().split('T')[0]);
+                        return `
+                            <div class="p-4 rounded-2xl bg-base border border-border/40 hover:border-accent/30 transition-all cursor-pointer group" onclick="toggleDashboardHabit('${h.id}', this)">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xl group-hover:scale-125 transition-transform">${h.icon || '✅'}</span>
+                                    <div class="habit-check-mini w-5 h-5 rounded-full border-2 ${done ? 'bg-accent border-accent text-base' : 'border-border'} flex items-center justify-center text-[10px]">
+                                        ${done ? '✓' : ''}
+                                    </div>
+                                </div>
+                                <p class="text-xs font-semibold truncate">${h.name}</p>
+                                <p class="text-[10px] text-textMuted">${h.currentStreak || 0}d streak</p>
+                            </div>
+                        `;
+                    }).join("");
+                }
+
+                // 2. Finance Summary
+                const { getTransactions } = await import("./js/db.js");
+                const txns = await getTransactions();
+                const now = new Date();
+                const thisMonth = txns.filter(t => {
+                    const d = new Date(t.date);
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                });
+                const income = thisMonth.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                const expense = thisMonth.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                
+                // Target the values directly by searching for the labels
+                const spentEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Spent')?.nextElementSibling;
+                const earnedEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Earned')?.nextElementSibling;
+                const netEl = Array.from(document.querySelectorAll('span')).find(el => el.textContent === 'Net')?.nextElementSibling;
+                
+                if (spentEl) spentEl.textContent = `- ₹${expense.toLocaleString()}`;
+                if (earnedEl) earnedEl.textContent = `+ ₹${income.toLocaleString()}`;
+                if (netEl) netEl.textContent = `${income >= expense ? '+' : ''} ₹${(income - expense).toLocaleString()}`;
+                
+            } catch (err) { console.error("Error loading dashboard live data:", err); }
+        }
+
+        window.toggleDashboardHabit = async (id, el) => {
+            const { toggleHabitCompletion } = await import("./js/db.js");
+            const result = await toggleHabitCompletion(id, new Date().toISOString().split('T')[0]);
+            if (result.success) {
+                const check = el.querySelector('.habit-check-mini');
+                const isDone = check.classList.contains('bg-accent');
+                check.className = `habit-check-mini w-5 h-5 rounded-full border-2 ${!isDone ? 'bg-accent border-accent text-base' : 'border-border'} flex items-center justify-center text-[10px]`;
+                check.innerHTML = !isDone ? '✓' : '';
+            }
+        };
+
+        // --- Save Check-in Button ---
+        document.getElementById('save-dashboard-btn')?.addEventListener('click', async () => {
+            const btn = document.getElementById('save-dashboard-btn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            // Collect current selections
+            const mood = document.querySelector('.mood-btn.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
+            const energy = document.querySelector('.energy-pill.selected')?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1] || null;
+            const feelings = [...document.querySelectorAll('.feeling-tag.selected')].map(b =>
+                b.textContent.trim().split(' ').pop().toLowerCase()
+            );
+            const task = document.getElementById('today-task')?.value || '';
+            const note = document.getElementById('quick-note')?.value || '';
+
+            // Collect checked habits
+            const habitsCompleted = [];
+            document.querySelectorAll('.habit-checkbox.checked').forEach(box => {
+                const label = box.closest('.flex')?.querySelector('p')?.textContent?.trim();
+                if (label) habitsCompleted.push(label);
+            });
+
+            const result = await saveDailyLog({
+                mood, energy, feelings, task, note, habitsCompleted
+            });
+
+            if (result.success) {
+                btn.textContent = '✓ Saved!';
+                btn.classList.add('bg-accent/80');
+
+                // Update save indicator
+                const saveIndicator = document.querySelector('.soft-pulse')?.parentElement;
+                if (saveIndicator) {
+                    saveIndicator.innerHTML = `
+                        <span class="w-1.5 h-1.5 rounded-full bg-accent soft-pulse"></span>
+                        Last saved just now
+                    `;
+                }
+
+                setTimeout(() => {
+                    btn.textContent = 'Save Check-in ✓';
+                    btn.classList.remove('bg-accent/80');
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                btn.textContent = '✗ Error — retry';
+                btn.classList.add('bg-red-500');
+                setTimeout(() => {
+                    btn.textContent = 'Save Check-in ✓';
+                    btn.classList.remove('bg-red-500');
+                    btn.disabled = false;
+                }, 2000);
+            }
+        });
+    </script>
+
+    <!-- ===================== JAVASCRIPT (non-module UI logic) ===================== -->
+    <script>
+        // --- Date (greeting is set by auth.js dynamically) ---
+        (function setDate() {
+            const dateEl = document.getElementById('date-text');
+            if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        })();
+
+        // --- Profile Dropdown ---
+        function toggleProfileDropdown() {
+            document.getElementById('profile-dropdown').classList.toggle('show');
+        }
+
+        // --- Notifications ---
+        function toggleNotifications() {
+            document.getElementById('notif-dropdown').classList.toggle('hidden');
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            const btn = document.getElementById('profile-btn');
+            const dd = document.getElementById('profile-dropdown');
+            const notifBtn = document.querySelector('[onclick="toggleNotifications()"]');
+            const notifDd = document.getElementById('notif-dropdown');
+
+            if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) {
+                dd.classList.remove('show');
+            }
+            if (notifBtn && notifDd && !notifBtn.contains(e.target) && !notifDd.contains(e.target)) {
+                notifDd.classList.add('hidden');
+            }
+        });
+
+        // --- Habit Check ---
+        function toggleHabitCheck(row) {
+            const box = row.querySelector('.habit-checkbox');
+            box.classList.toggle('checked');
+            const label = row.querySelector('p');
+            if (box.classList.contains('checked')) {
+                label.classList.add('line-through', 'text-textMuted');
+            } else {
+                label.classList.remove('line-through', 'text-textMuted');
+            }
+        }
+
+        // --- Mood ---
+        function selectMood(btn, mood) {
+            document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const labels = { happy: 'Feeling good! 😊', neutral: 'Meh, okay 😐', sad: 'Not great 😞' };
+            document.getElementById('mood-label').textContent = labels[mood] || '';
+        }
+
+        // --- Energy ---
+        function selectEnergy(btn, level) {
+            document.querySelectorAll('.energy-pill').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        // --- Feeling Tags ---
+        function toggleFeeling(btn) {
+            btn.classList.toggle('selected');
+        }
+
+        // --- Music ---
+        let musicPlaying = false;
+        function toggleMusicPlay() {
+            const btn = document.getElementById('music-play');
+            musicPlaying = !musicPlaying;
+            btn.textContent = musicPlaying ? '⏸' : '▶';
+            if (musicPlaying) animateProgress();
+        }
+
+        function animateProgress() {
+            if (!musicPlaying) return;
+            const bar = document.getElementById('music-progress');
+            let width = parseFloat(bar.style.width);
+            if (width >= 100) width = 0;
+            bar.style.width = (width + 0.3) + '%';
+            requestAnimationFrame(() => setTimeout(animateProgress, 100));
+        }
+
+        // --- Water Tree ---
+        let treeLevel = 3;
+        const treeCrowns = ['🌱', '🌿', '🪴', '🌳', '🌲', '🎄'];
+        function waterTree() {
+            const btn = document.getElementById('water-tree-btn');
+            btn.textContent = '✨ Watered!';
+            btn.classList.add('bg-accent/30');
+            const crown = document.getElementById('tree-crown');
+            crown.style.transform = 'scale(1.2)';
+            crown.style.transition = 'transform 0.4s ease';
+            setTimeout(() => {
+                crown.style.transform = 'scale(1)';
+                btn.textContent = '💧 Water Your Tree';
+                btn.classList.remove('bg-accent/30');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
+

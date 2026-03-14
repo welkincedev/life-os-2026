@@ -1,0 +1,18 @@
+# Git
+.git/
+
+# Dependencies
+node_modules/
+
+# Environment Variables
+.env
+.env.local
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

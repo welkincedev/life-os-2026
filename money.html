@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS — Money Tracker</title>
+    <meta name="description" content="Track your income, expenses, and savings with LifeOS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#0f172a',
+                        card: '#1e293b',
+                        cardHover: '#253349',
+                        accent: '#22c55e',
+                        accentDim: 'rgba(34, 197, 94, 0.12)',
+                        textPrimary: '#e2e8f0',
+                        textSecondary: '#94a3b8',
+                        textMuted: '#64748b',
+                        border: '#334155',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #1e1e2e; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2e2e3e; }
+
+        /* Type toggle */
+        .type-toggle-btn { transition: all 0.25s ease; }
+        .type-toggle-btn.active-type-expense {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #f87171;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+        .type-toggle-btn.active-type-income {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.5);
+            color: #4ade80;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+        }
+
+        /* Method pill */
+        .method-pill { transition: all 0.2s ease; }
+        .method-pill.selected {
+            background: rgba(129, 140, 248, 0.15) !important;
+            border-color: #818cf8 !important;
+            color: #a5b4fc !important;
+            box-shadow: 0 0 15px rgba(129, 140, 248, 0.1);
+        }
+
+        /* Mood selector */
+        .mood-select { transition: all 0.2s ease; }
+        .mood-select:hover { transform: scale(1.15); }
+        .mood-select.selected {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.4));
+            background: rgba(129, 140, 248, 0.1);
+        }
+
+        /* Glow card */
+        .glow-card { transition: all 0.3s ease; }
+        .glow-card:hover { box-shadow: 0 0 30px rgba(129, 140, 248, 0.05); border-color: rgba(129, 140, 248, 0.15); }
+
+        /* Fade in */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
+        .fade-up-2 { animation-delay: 0.1s; opacity: 0; }
+        .fade-up-3 { animation-delay: 0.15s; opacity: 0; }
+
+        /* Balance card shimmer */
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .balance-shimmer {
+            background: linear-gradient(90deg, transparent 0%, rgba(129, 140, 248, 0.03) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        /* Transaction delete btn */
+        .txn-delete { opacity: 0; transition: opacity 0.2s; }
+        .txn-card:hover .txn-delete { opacity: 1; }
+    </style>
+</head>
+<body class="bg-base text-textPrimary min-h-screen font-sans">
+
+    <div id="navbar-container"></div>
+
+    <div class="flex">
+        <div id="sidebar-container"></div>
+
+        <main id="money-main" class="flex-1 p-6 md:p-10 md:ml-64 mt-16 max-w-6xl">
+
+            <!-- Page Header -->
+            <div class="flex items-center justify-between mb-8 fade-up">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">Money Tracker</h1>
+                    <p class="text-textMuted mt-1 text-sm">Know where every rupee goes.</p>
+                </div>
+                <button id="add-transaction-btn"
+                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:scale-105 transition-transform shadow-lg shadow-indigo-500/20 active:scale-[0.97]">
+                    + Add Transaction
+                </button>
+            </div>
+
+            <!-- Balance Cards -->
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8 fade-up fade-up-1">
+                <!-- Total Balance -->
+                <div class="glow-card bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+                    <div class="balance-shimmer absolute inset-0"></div>
+                    <div class="relative">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <span class="text-sm">💎</span>
+                            </div>
+                            <p class="text-textMuted text-sm font-medium">Total Balance</p>
+                        </div>
+                        <p id="total-balance" class="text-3xl font-bold text-white">₹0</p>
+                    </div>
+                </div>
+                <!-- Income -->
+                <div class="glow-card bg-card border border-green-500/10 rounded-2xl p-6">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                            <span class="text-sm">📈</span>
+                        </div>
+                        <p class="text-textMuted text-sm font-medium">Income <span class="text-textMuted/60 text-xs">(This Month)</span></p>
+                    </div>
+                    <p id="total-income" class="text-3xl font-bold text-green-400">₹0</p>
+                </div>
+                <!-- Expenses -->
+                <div class="glow-card bg-card border border-red-500/10 rounded-2xl p-6">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                            <span class="text-sm">📉</span>
+                        </div>
+                        <p class="text-textMuted text-sm font-medium">Expenses <span class="text-textMuted/60 text-xs">(This Month)</span></p>
+                    </div>
+                    <p id="total-expenses" class="text-3xl font-bold text-red-400">₹0</p>
+                </div>
+            </section>
+
+            <!-- Spending by Category -->
+            <section class="glow-card bg-card border border-border rounded-2xl p-6 mb-8 fade-up fade-up-2">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <span class="text-xs">📊</span>
+                    </div>
+                    <h2 class="font-semibold text-sm">Spending by Category</h2>
+                </div>
+                <div id="category-chart" class="space-y-3">
+                    <p class="text-textMuted text-sm text-center py-4">Add expenses to see category breakdown</p>
+                </div>
+            </section>
+
+            <!-- Transactions List -->
+            <section class="fade-up fade-up-3">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                            <span class="text-xs">📋</span>
+                        </div>
+                        <h2 class="text-lg font-semibold">Recent Transactions</h2>
+                    </div>
+                    <select id="filter-type" class="px-3 py-2 rounded-xl bg-card border border-border text-sm text-textSecondary focus:outline-none focus:border-accent/50 cursor-pointer">
+                        <option value="all">All</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expenses</option>
+                    </select>
+                </div>
+                <div id="transactions-list" class="space-y-3">
+                    <!-- Transactions injected by money.js -->
+                </div>
+            </section>
+
+            <!-- =================== ADD TRANSACTION MODAL =================== -->
+            <div id="transaction-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-card border border-border rounded-2xl p-7 w-full max-w-md shadow-2xl shadow-black/60 relative">
+                    <!-- Close X -->
+                    <button id="close-txn-modal-x" class="absolute top-4 right-4 text-textMuted hover:text-white text-lg transition">✕</button>
+                    
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-sm">💸</span>
+                        Add Transaction
+                    </h2>
+
+                    <form id="transaction-form" class="space-y-5">
+                        <!-- Type Toggle -->
+                        <div class="flex gap-3">
+                            <button type="button" data-type="expense"
+                                class="type-toggle-btn active-type-expense flex-1 py-2.5 rounded-xl border border-red-500/20 text-red-400 font-medium transition text-sm">
+                                📉 Expense
+                            </button>
+                            <button type="button" data-type="income"
+                                class="type-toggle-btn flex-1 py-2.5 rounded-xl border border-green-500/20 text-green-400 font-medium transition text-sm">
+                                📈 Income
+                            </button>
+                        </div>
+
+                        <!-- Amount -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-1.5">Amount (₹)</label>
+                            <input type="number" id="txn-amount" required min="1" step="any"
+                                class="w-full px-4 py-3 rounded-xl bg-base border border-border text-white placeholder-textMuted text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/50 transition"
+                                placeholder="0">
+                        </div>
+
+                        <!-- Method -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-2">Method</label>
+                            <div class="flex gap-2">
+                                <button type="button" data-method="upi"
+                                    class="method-pill selected flex-1 py-2.5 rounded-xl border border-border bg-base text-textSecondary text-sm font-medium transition hover:border-accent/30">
+                                    📱 UPI
+                                </button>
+                                <button type="button" data-method="cash"
+                                    class="method-pill flex-1 py-2.5 rounded-xl border border-border bg-base text-textSecondary text-sm font-medium transition hover:border-accent/30">
+                                    💵 Cash
+                                </button>
+                                <button type="button" data-method="card"
+                                    class="method-pill flex-1 py-2.5 rounded-xl border border-border bg-base text-textSecondary text-sm font-medium transition hover:border-accent/30">
+                                    💳 Card
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mood -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-2">How did this feel?</label>
+                            <div class="flex items-center gap-3 justify-center">
+                                <button type="button" data-mood="happy"
+                                    class="mood-select text-3xl p-2 rounded-xl transition" title="Happy">😊</button>
+                                <button type="button" data-mood="neutral"
+                                    class="mood-select selected text-3xl p-2 rounded-xl transition" title="Neutral">😐</button>
+                                <button type="button" data-mood="regret"
+                                    class="mood-select text-3xl p-2 rounded-xl transition" title="Regret">😞</button>
+                            </div>
+                            <p id="mood-label" class="text-center text-[11px] text-textMuted mt-1.5">Neutral</p>
+                        </div>
+
+                        <!-- Note -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-1.5">Note</label>
+                            <input type="text" id="txn-note"
+                                class="w-full px-4 py-3 rounded-xl bg-base border border-border text-white placeholder-textMuted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/50 transition text-sm"
+                                placeholder="What was this for?" maxlength="100">
+                        </div>
+
+                        <!-- Category -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-1.5">Category</label>
+                            <select id="txn-category"
+                                class="w-full px-4 py-3 rounded-xl bg-base border border-border text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/50 transition text-sm cursor-pointer">
+                                <option value="food">🍔 Food</option>
+                                <option value="transport">🚗 Transport</option>
+                                <option value="shopping">🛍️ Shopping</option>
+                                <option value="bills">📄 Bills</option>
+                                <option value="entertainment">🎬 Entertainment</option>
+                                <option value="health">💊 Health</option>
+                                <option value="education">📚 Education</option>
+                                <option value="salary">💰 Salary</option>
+                                <option value="other">📦 Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Date -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-textMuted mb-1.5">Date</label>
+                            <input type="date" id="txn-date"
+                                class="w-full px-4 py-3 rounded-xl bg-base border border-border text-white focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/50 transition text-sm cursor-pointer">
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex gap-3 pt-2">
+                            <button type="submit" id="txn-submit-btn"
+                                class="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.97] text-sm">
+                                Save Transaction
+                            </button>
+                            <button type="button" id="close-txn-modal"
+                                class="flex-1 py-3 rounded-xl border border-border text-textSecondary hover:bg-cardHover transition-colors text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts (ES Module) -->
+    <script type="module" src="js/firebase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/db.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/sidebar.js"></script>
+    <script src="js/weather.js"></script>
+    <script type="module" src="js/money.js"></script>
+</body>
+</html>

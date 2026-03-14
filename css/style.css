@@ -1,0 +1,174 @@
+/* ============================================
+   LifeOS — Global Stylesheet
+   ============================================ */
+
+/* --- Base & Reset --- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+    background: #1e1e2e;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #2e2e3e;
+}
+
+/* --- Transitions --- */
+a, button, input, select, textarea {
+    transition: all 0.2s ease;
+}
+
+/* --- Active Mood Button --- */
+.mood-btn.active {
+    border-color: #818cf8;
+    background-color: rgba(129, 140, 248, 0.1);
+    box-shadow: 0 0 20px rgba(129, 140, 248, 0.15);
+}
+
+/* --- Active Transaction Type --- */
+.type-btn.active-type {
+    background-color: rgba(129, 140, 248, 0.1);
+    border-color: #818cf8;
+    color: #c7d2fe;
+}
+
+/* --- Habit Check Animation --- */
+.habit-check {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.habit-check.checked {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    transform: scale(1.1);
+}
+
+/* --- Card Hover --- */
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Breathing Animation --- */
+@keyframes breathe-in {
+    0% { transform: scale(1); border-color: rgba(99, 102, 241, 0.3); }
+    100% { transform: scale(1.5); border-color: rgba(99, 102, 241, 0.8); }
+}
+@keyframes breathe-out {
+    0% { transform: scale(1.5); border-color: rgba(99, 102, 241, 0.8); }
+    100% { transform: scale(1); border-color: rgba(99, 102, 241, 0.3); }
+}
+.breathing-in {
+    animation: breathe-in 4s ease-in-out forwards;
+}
+.breathing-out {
+    animation: breathe-out 4s ease-in-out forwards;
+}
+
+/* --- Category Progress Bar --- */
+.category-bar {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #1f2937;
+    overflow: hidden;
+}
+.category-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Tag Chip --- */
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+.tag-chip button {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+}
+.tag-chip button:hover {
+    opacity: 1;
+}
+
+/* --- Track Card --- */
+.track-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.track-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+.track-card.playing {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.08));
+}
+
+/* --- Sidebar Active Link --- */
+.sidebar-link.active {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border-left: 3px solid #6366f1;
+}
+
+/* --- Pulse Dot --- */
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+.pulse-dot {
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* --- Fade In --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .sidebar-container {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    .sidebar-container.open {
+        transform: translateX(0);
+    }
+}

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS — Calm Space</title>
+    <meta name="description" content="Relax with ambient sounds, music, and a focus timer in LifeOS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#0f172a',
+                        card: '#1e293b',
+                        cardHover: '#253349',
+                        accent: '#22c55e',
+                        accentDim: 'rgba(34, 197, 94, 0.12)',
+                        textPrimary: '#e2e8f0',
+                        textSecondary: '#94a3b8',
+                        textMuted: '#64748b',
+                        border: '#334155',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        /* Ambient card */
+        .ambient-card {
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .ambient-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+        .ambient-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .ambient-card.playing {
+            border-color: rgba(129, 140, 248, 0.3) !important;
+            box-shadow: 0 0 40px rgba(129, 140, 248, 0.08);
+        }
+        .ambient-card.playing::before {
+            opacity: 1;
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.04), rgba(168, 85, 247, 0.04));
+        }
+
+        /* Sound wave animation for playing state */
+        @keyframes soundWave1 { 0%,100% { height: 8px; } 50% { height: 20px; } }
+        @keyframes soundWave2 { 0%,100% { height: 16px; } 50% { height: 6px; } }
+        @keyframes soundWave3 { 0%,100% { height: 12px; } 50% { height: 24px; } }
+        .sound-bar-1 { animation: soundWave1 0.9s ease-in-out infinite; }
+        .sound-bar-2 { animation: soundWave2 0.7s ease-in-out infinite; }
+        .sound-bar-3 { animation: soundWave3 1.1s ease-in-out infinite; }
+
+        /* Breathing circle */
+        @keyframes breatheExpand {
+            0% { transform: scale(1); border-color: rgba(129, 140, 248, 0.3); box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+            100% { transform: scale(1.4); border-color: rgba(129, 140, 248, 0.7); box-shadow: 0 0 40px 10px rgba(129,140,248,0.1); }
+        }
+        @keyframes breatheShrink {
+            0% { transform: scale(1.4); border-color: rgba(129, 140, 248, 0.7); box-shadow: 0 0 40px 10px rgba(129,140,248,0.1); }
+            100% { transform: scale(1); border-color: rgba(129, 140, 248, 0.3); box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+        }
+        .breathing-expanding { animation: breatheExpand 4s ease-in-out forwards; }
+        .breathing-shrinking { animation: breatheShrink 4s ease-in-out forwards; }
+
+        /* Fade */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.6s ease-out forwards; }
+        .fade-up-1 { animation-delay: 0.08s; opacity: 0; }
+        .fade-up-2 { animation-delay: 0.16s; opacity: 0; }
+        .fade-up-3 { animation-delay: 0.24s; opacity: 0; }
+        .fade-up-4 { animation-delay: 0.32s; opacity: 0; }
+
+        /* Glow card */
+        .glow-card { transition: all 0.3s ease; }
+        .glow-card:hover { box-shadow: 0 0 30px rgba(129, 140, 248, 0.05); border-color: rgba(129, 140, 248, 0.15); }
+
+        /* Timer ring */
+        .timer-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Volume slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: #1e1e2e;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #818cf8;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(129, 140, 248, 0.3);
+        }
+
+        /* Pulse */
+        @keyframes gentlePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .gentle-pulse { animation: gentlePulse 3s ease-in-out infinite; }
+
+        /* Float animation for ambient icons */
+        @keyframes floatIcon { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .float-icon { animation: floatIcon 4s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-base text-textPrimary min-h-screen font-sans">
+
+    <div id="navbar-container"></div>
+
+    <div class="flex">
+        <div id="sidebar-container"></div>
+
+        <main class="flex-1 p-6 md:p-10 md:ml-64 mt-16 max-w-6xl">
+
+            <!-- Page Header -->
+            <div class="mb-10 fade-up">
+                <h1 class="text-3xl font-bold tracking-tight">Calm Space</h1>
+                <p class="text-textMuted mt-1.5 text-sm">Breathe. Listen. Focus. Reset.</p>
+            </div>
+
+            <!-- =================== AMBIENT SOUNDS =================== -->
+            <section class="mb-10 fade-up fade-up-1">
+                <div class="flex items-center gap-2 mb-5">
+                    <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        <span class="text-xs">🎧</span>
+                    </div>
+                    <h2 class="text-lg font-semibold">Ambient Sounds</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                    <!-- Rain Card -->
+                    <div class="ambient-card bg-card border border-border rounded-3xl p-7 cursor-pointer" id="card-rain" onclick="toggleSound('rain')">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/15 to-cyan-500/15 flex items-center justify-center border border-blue-500/10">
+                                <span class="text-3xl float-icon">🌧️</span>
+                            </div>
+                            <div id="wave-rain" class="hidden flex items-end gap-[3px]">
+                                <div class="w-[3px] rounded-full bg-blue-400 sound-bar-1"></div>
+                                <div class="w-[3px] rounded-full bg-blue-400 sound-bar-2"></div>
+                                <div class="w-[3px] rounded-full bg-blue-400 sound-bar-3"></div>
+                                <div class="w-[3px] rounded-full bg-blue-400 sound-bar-1"></div>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold mb-1">Rain Sounds</h3>
+                        <p class="text-textMuted text-sm mb-4">Gentle rainfall to calm your mind</p>
+                        <div class="flex items-center justify-between">
+                            <span id="status-rain" class="text-xs text-textMuted px-2.5 py-1 rounded-full bg-base border border-border">Tap to play</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-textMuted text-xs">🔊</span>
+                                <input type="range" id="vol-rain" min="0" max="100" value="70" class="w-20" onclick="event.stopPropagation()" oninput="setVolume('rain', this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forest Card -->
+                    <div class="ambient-card bg-card border border-border rounded-3xl p-7 cursor-pointer" id="card-forest" onclick="toggleSound('forest')">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-green-500/15 flex items-center justify-center border border-emerald-500/10">
+                                <span class="text-3xl float-icon" style="animation-delay: 0.5s">🌲</span>
+                            </div>
+                            <div id="wave-forest" class="hidden flex items-end gap-[3px]">
+                                <div class="w-[3px] rounded-full bg-emerald-400 sound-bar-1"></div>
+                                <div class="w-[3px] rounded-full bg-emerald-400 sound-bar-2"></div>
+                                <div class="w-[3px] rounded-full bg-emerald-400 sound-bar-3"></div>
+                                <div class="w-[3px] rounded-full bg-emerald-400 sound-bar-1"></div>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold mb-1">Forest Sounds</h3>
+                        <p class="text-textMuted text-sm mb-4">Birds chirping in a peaceful forest</p>
+                        <div class="flex items-center justify-between">
+                            <span id="status-forest" class="text-xs text-textMuted px-2.5 py-1 rounded-full bg-base border border-border">Tap to play</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-textMuted text-xs">🔊</span>
+                                <input type="range" id="vol-forest" min="0" max="100" value="70" class="w-20" onclick="event.stopPropagation()" oninput="setVolume('forest', this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ocean Card -->
+                    <div class="ambient-card bg-card border border-border rounded-3xl p-7 cursor-pointer" id="card-ocean" onclick="toggleSound('ocean')">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-teal-500/15 flex items-center justify-center border border-cyan-500/10">
+                                <span class="text-3xl float-icon" style="animation-delay: 1s">🌊</span>
+                            </div>
+                            <div id="wave-ocean" class="hidden flex items-end gap-[3px]">
+                                <div class="w-[3px] rounded-full bg-cyan-400 sound-bar-1"></div>
+                                <div class="w-[3px] rounded-full bg-cyan-400 sound-bar-2"></div>
+                                <div class="w-[3px] rounded-full bg-cyan-400 sound-bar-3"></div>
+                                <div class="w-[3px] rounded-full bg-cyan-400 sound-bar-1"></div>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold mb-1">Ocean Waves</h3>
+                        <p class="text-textMuted text-sm mb-4">Waves crashing on a serene shore</p>
+                        <div class="flex items-center justify-between">
+                            <span id="status-ocean" class="text-xs text-textMuted px-2.5 py-1 rounded-full bg-base border border-border">Tap to play</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-textMuted text-xs">🔊</span>
+                                <input type="range" id="vol-ocean" min="0" max="100" value="70" class="w-20" onclick="event.stopPropagation()" oninput="setVolume('ocean', this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =================== FOCUS TIMER =================== -->
+            <section class="mb-10 fade-up fade-up-2">
+                <div class="flex items-center gap-2 mb-5">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <span class="text-xs">⏱️</span>
+                    </div>
+                    <h2 class="text-lg font-semibold">Focus Timer</h2>
+                </div>
+
+                <div class="glow-card bg-card border border-border rounded-3xl p-8 md:p-10">
+                    <div class="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+
+                        <!-- Timer Ring -->
+                        <div class="relative flex-shrink-0">
+                            <svg width="200" height="200" viewBox="0 0 200 200">
+                                <circle cx="100" cy="100" r="88" fill="none" stroke="#1e1e2e" stroke-width="6" />
+                                <circle id="timer-ring" class="timer-ring-circle" cx="100" cy="100" r="88" fill="none"
+                                    stroke="url(#timerGradient)" stroke-width="6" stroke-linecap="round"
+                                    stroke-dasharray="553" stroke-dashoffset="0" />
+                                <defs>
+                                    <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#818cf8" />
+                                        <stop offset="100%" stop-color="#a78bfa" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <p id="timer-display" class="text-4xl font-bold tracking-tight text-textPrimary">25:00</p>
+                                <p id="timer-phase" class="text-xs text-textMuted mt-1">Focus Time</p>
+                            </div>
+                        </div>
+
+                        <!-- Timer Controls -->
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-xl font-bold mb-2">Pomodoro Focus</h3>
+                            <p class="text-textMuted text-sm mb-6 max-w-sm">Stay focused for 25 minutes, then take a 5-minute break. Repeat to build deep work habits.</p>
+
+                            <!-- Duration Presets -->
+                            <div class="flex gap-2 mb-6 justify-center md:justify-start flex-wrap">
+                                <button onclick="setTimerDuration(15)" class="timer-preset px-4 py-2 rounded-xl bg-base border border-border text-textSecondary text-sm font-medium hover:border-accent/30 transition">15m</button>
+                                <button onclick="setTimerDuration(25)" class="timer-preset active-preset px-4 py-2 rounded-xl bg-accent/10 border border-accent/30 text-accent text-sm font-medium transition">25m</button>
+                                <button onclick="setTimerDuration(45)" class="timer-preset px-4 py-2 rounded-xl bg-base border border-border text-textSecondary text-sm font-medium hover:border-accent/30 transition">45m</button>
+                                <button onclick="setTimerDuration(60)" class="timer-preset px-4 py-2 rounded-xl bg-base border border-border text-textSecondary text-sm font-medium hover:border-accent/30 transition">60m</button>
+                            </div>
+
+                            <!-- Start/Pause/Reset -->
+                            <div class="flex gap-3 justify-center md:justify-start">
+                                <button id="timer-start-btn" onclick="toggleTimer()"
+                                    class="px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all active:scale-[0.97] text-sm">
+                                    ▶ Start Focus
+                                </button>
+                                <button id="timer-reset-btn" onclick="resetTimer()"
+                                    class="px-5 py-3 rounded-xl border border-border text-textSecondary hover:bg-cardHover transition text-sm">
+                                    ↻ Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================== BREATHING EXERCISE =================== -->
+            <section class="mb-10 fade-up fade-up-3">
+                <div class="flex items-center gap-2 mb-5">
+                    <div class="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                        <span class="text-xs">🧘</span>
+                    </div>
+                    <h2 class="text-lg font-semibold">Breathing Exercise</h2>
+                </div>
+
+                <div class="glow-card bg-card border border-border rounded-3xl p-8 md:p-10 text-center">
+                    <p class="text-textMuted text-sm mb-8">Follow the circle. Inhale → Hold → Exhale.</p>
+
+                    <div id="breathing-circle"
+                        class="w-36 h-36 mx-auto rounded-full border-4 border-accent/30 flex items-center justify-center mb-8 transition-all">
+                        <span id="breathing-text" class="text-textMuted font-semibold text-lg">Start</span>
+                    </div>
+
+                    <button id="start-breathing"
+                        class="px-8 py-3 rounded-xl bg-accent/10 border border-accent/20 text-accent font-medium hover:bg-accent/20 transition active:scale-[0.97] text-sm">
+                        🌬️ Begin Breathing
+                    </button>
+                </div>
+            </section>
+
+            <!-- =================== QUICK CALM TIPS =================== -->
+            <section class="fade-up fade-up-4 mb-10">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-card border border-border rounded-2xl p-5">
+                        <span class="text-2xl mb-2 block">🫧</span>
+                        <h4 class="font-semibold text-sm mb-1">Box Breathing</h4>
+                        <p class="text-textMuted text-xs leading-relaxed">Inhale 4s → Hold 4s → Exhale 4s → Hold 4s. Repeat 4 times for instant calm.</p>
+                    </div>
+                    <div class="bg-card border border-border rounded-2xl p-5">
+                        <span class="text-2xl mb-2 block">🌿</span>
+                        <h4 class="font-semibold text-sm mb-1">Ground Yourself</h4>
+                        <p class="text-textMuted text-xs leading-relaxed">Name 5 things you see, 4 you touch, 3 you hear, 2 you smell, 1 you taste.</p>
+                    </div>
+                    <div class="bg-card border border-border rounded-2xl p-5">
+                        <span class="text-2xl mb-2 block">💤</span>
+                        <h4 class="font-semibold text-sm mb-1">Body Scan</h4>
+                        <p class="text-textMuted text-xs leading-relaxed">Close your eyes. Slowly scan from head to toes, releasing tension in each area.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Hidden Audio Elements -->
+    <audio id="audio-rain" loop preload="none"
+        src="https://cdn.freesound.org/previews/531/531947_6498778-lq.mp3"></audio>
+    <audio id="audio-forest" loop preload="none"
+        src="https://cdn.freesound.org/previews/462/462087_8386274-lq.mp3"></audio>
+    <audio id="audio-ocean" loop preload="none"
+        src="https://cdn.freesound.org/previews/467/467539_9497060-lq.mp3"></audio>
+
+    <!-- Scripts -->
+    <script type="module" src="js/firebase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/db.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/sidebar.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/calm.js"></script>
+</html>

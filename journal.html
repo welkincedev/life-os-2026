@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS — Journal</title>
+    <meta name="description" content="Write daily reflections, park ideas, and compose unsent letters.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#0f172a',
+                        card: '#1e293b',
+                        cardHover: '#253349',
+                        accent: '#22c55e',
+                        accentDim: 'rgba(34, 197, 94, 0.12)',
+                        border: '#334155',
+                        textPrimary: '#e2e8f0',
+                        textSecondary: '#94a3b8',
+                        textMuted: '#64748b',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+        .fade-up-1 { animation-delay: 0.06s; opacity: 0; }
+        .fade-up-2 { animation-delay: 0.12s; opacity: 0; }
+        .fade-up-3 { animation-delay: 0.18s; opacity: 0; }
+        .fade-up-4 { animation-delay: 0.24s; opacity: 0; }
+
+        @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        .glow-card { transition: all 0.3s ease; }
+        .glow-card:hover { box-shadow: 0 0 30px rgba(129, 140, 248, 0.05); border-color: rgba(129, 140, 248, 0.15); }
+
+        /* Writing area */
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        textarea:focus { outline: none; }
+        .write-area {
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 14px;
+            line-height: 1.8;
+            width: 100%;
+        }
+        .write-area::placeholder { color: #475569; }
+
+        /* Tab navigation */
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active-tab {
+            background: rgba(129, 140, 248, 0.1);
+            border-color: rgba(129, 140, 248, 0.3);
+            color: #a5b4fc;
+        }
+
+        /* Entry card */
+        .entry-card { transition: all 0.25s ease; }
+        .entry-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .entry-actions { opacity: 0; transition: opacity 0.2s ease; }
+        .entry-card:hover .entry-actions { opacity: 1; }
+
+        /* Type badges */
+        .type-daily { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.2); }
+        .type-idea { background: rgba(234,179,8,0.12); color: #fbbf24; border-color: rgba(234,179,8,0.2); }
+        .type-letter { background: rgba(236,72,153,0.12); color: #f472b6; border-color: rgba(236,72,153,0.2); }
+
+        /* Save feedback */
+        @keyframes savedPulse { 0% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
+        .saved-toast { animation: savedPulse 1.5s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-base text-textPrimary min-h-screen font-sans">
+
+    <div id="navbar-container"></div>
+
+    <div class="flex">
+        <div id="sidebar-container"></div>
+
+        <main class="flex-1 p-6 md:p-10 md:ml-64 mt-16 max-w-5xl">
+
+            <!-- Page Header -->
+            <div class="flex items-center justify-between mb-8 fade-up">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">Journal</h1>
+                    <p class="text-textMuted mt-1 text-sm">Your thoughts, your space.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="entry-date" class="text-textMuted text-sm"></span>
+                </div>
+            </div>
+
+            <!-- ============== DAILY PROMPT ============== -->
+            <div class="bg-gradient-to-r from-indigo-500/8 to-purple-500/8 border border-indigo-500/15 rounded-2xl px-6 py-4 mb-8 fade-up fade-up-1">
+                <p class="text-textMuted text-xs uppercase tracking-wider mb-1">💡 Today's Prompt</p>
+                <p id="daily-prompt" class="text-textSecondary text-sm italic"></p>
+            </div>
+
+            <!-- ============== WRITING SECTIONS ============== -->
+            <section class="space-y-6 mb-10">
+
+                <!-- Daily Journal Entry -->
+                <div class="glow-card bg-card border border-border rounded-2xl p-6 fade-up fade-up-1">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                            <span class="text-sm">📝</span>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-sm">Daily Reflection</h2>
+                            <p class="text-textMuted text-[11px]">Write about your day</p>
+                        </div>
+                    </div>
+                    <textarea id="daily-content" class="write-area" rows="6"
+                        placeholder="How was your day? What happened? What did you feel?"></textarea>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                        <span id="daily-saved" class="text-green-400 text-xs hidden">✓ Saved</span>
+                        <button onclick="window._saveEntry('daily')"
+                            class="ml-auto px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all active:scale-[0.97]">
+                            Save Entry
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Idea Parking Lot -->
+                <div class="glow-card bg-card border border-border rounded-2xl p-6 fade-up fade-up-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                            <span class="text-sm">💡</span>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-sm">Idea Parking Lot</h2>
+                            <p class="text-textMuted text-[11px]">Quick capture random ideas</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <input type="text" id="idea-input"
+                            class="flex-1 px-4 py-3 rounded-xl bg-base border border-border text-textPrimary placeholder-textMuted text-sm focus:outline-none focus:border-accent/40 transition"
+                            placeholder="Type an idea and press Enter or click Save..."
+                            onkeydown="if(event.key==='Enter'){window._saveEntry('idea')}">
+                        <button onclick="window._saveEntry('idea')"
+                            class="px-5 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium hover:bg-yellow-500/20 transition active:scale-[0.97]">
+                            + Save Idea
+                        </button>
+                    </div>
+                    <span id="idea-saved" class="text-green-400 text-xs hidden mt-2 block">✓ Saved</span>
+                </div>
+
+                <!-- Unsent Letters -->
+                <div class="glow-card bg-card border border-border rounded-2xl p-6 fade-up fade-up-3">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center">
+                            <span class="text-sm">💌</span>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-sm">Unsent Letters</h2>
+                            <p class="text-textMuted text-[11px]">Private letters that will never be sent</p>
+                        </div>
+                    </div>
+                    <input type="text" id="letter-to"
+                        class="w-full px-4 py-2.5 rounded-xl bg-base border border-border text-textPrimary placeholder-textMuted text-sm focus:outline-none focus:border-accent/40 transition mb-3"
+                        placeholder="Dear...">
+                    <textarea id="letter-content" class="write-area" rows="5"
+                        placeholder="Write your heart out. This is just for you."></textarea>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                        <span id="letter-saved" class="text-green-400 text-xs hidden">✓ Saved</span>
+                        <button onclick="window._saveEntry('letter')"
+                            class="ml-auto px-5 py-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm font-medium hover:bg-pink-500/20 transition active:scale-[0.97]">
+                            💌 Save Letter
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============== HISTORY SECTION ============== -->
+            <section class="fade-up fade-up-4">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                            <span class="text-xs">📖</span>
+                        </div>
+                        <h2 class="font-semibold text-sm">Past Entries</h2>
+                        <span id="entries-count" class="text-textMuted text-xs"></span>
+                    </div>
+                    <!-- Type filter tabs -->
+                    <div class="flex gap-2">
+                        <button data-filter="all" class="tab-btn active-tab px-3 py-1.5 rounded-lg border border-border text-xs font-medium transition">All</button>
+                        <button data-filter="daily" class="tab-btn px-3 py-1.5 rounded-lg border border-border text-textMuted text-xs font-medium transition">📝 Daily</button>
+                        <button data-filter="idea" class="tab-btn px-3 py-1.5 rounded-lg border border-border text-textMuted text-xs font-medium transition">💡 Ideas</button>
+                        <button data-filter="letter" class="tab-btn px-3 py-1.5 rounded-lg border border-border text-textMuted text-xs font-medium transition">💌 Letters</button>
+                    </div>
+                </div>
+
+                <div id="entries-list" class="space-y-3">
+                    <!-- Injected by journal.js -->
+                </div>
+            </section>
+
+            <!-- ============== EDIT MODAL ============== -->
+            <div id="edit-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-card border border-border rounded-3xl p-8 w-full max-w-lg shadow-2xl shadow-black/50 pop-in">
+                    <div class="flex items-center justify-between mb-5">
+                        <h2 class="text-lg font-bold">Edit Entry</h2>
+                        <button onclick="window._closeEditModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-textMuted hover:text-textPrimary hover:bg-base transition">✕</button>
+                    </div>
+                    <input type="hidden" id="edit-id">
+                    <input type="hidden" id="edit-type">
+                    <div id="edit-to-wrap" class="mb-3 hidden">
+                        <label class="block text-xs text-textMuted mb-1">To</label>
+                        <input type="text" id="edit-to" class="w-full px-4 py-2.5 rounded-xl bg-base border border-border text-textPrimary text-sm focus:outline-none focus:border-accent/40 transition">
+                    </div>
+                    <label class="block text-xs text-textMuted mb-1">Content</label>
+                    <textarea id="edit-content" class="write-area w-full px-4 py-3 rounded-xl bg-base border border-border" rows="8"></textarea>
+                    <div class="flex gap-3 mt-5">
+                        <button onclick="window._updateEntry()"
+                            class="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium hover:shadow-lg transition active:scale-[0.97]">
+                            Update Entry
+                        </button>
+                        <button onclick="window._closeEditModal()"
+                            class="flex-1 py-3 rounded-xl border border-border text-textSecondary text-sm hover:bg-base transition">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/firebase.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/db.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/sidebar.js"></script>
+    <script src="js/weather.js"></script>
+    <script type="module" src="js/journal.js"></script>
+</body>
+</html>
