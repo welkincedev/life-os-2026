@@ -30,6 +30,9 @@ const currentPage = path.split("/").pop();
 const isRoot = currentPage === "" || currentPage === "index.html" || path.endsWith("/");
 
 onAuthStateChanged(auth, (user) => {
+    const loader = document.getElementById("auth-loading");
+    const loginContainer = document.getElementById("login-container");
+
     if (user) {
         // ✅ User is logged in
         console.log("✅ Logged in:", user.displayName || user.email);
@@ -47,9 +50,27 @@ onAuthStateChanged(auth, (user) => {
         // Update UI elements with user info
         updateUserUI(user);
 
+        // Hide loader on app pages
+        if (loader) {
+            loader.style.opacity = "0";
+            setTimeout(() => loader.style.display = "none", 300);
+        }
+
     } else {
-        // ❌ Not logged in — redirect protected pages OR root to login
-        if (!publicPages.includes(currentPage) || isRoot) {
+        // ❌ Not logged in
+        if (currentPage === "login.html") {
+            // Show the login form
+            if (loader) {
+                loader.style.opacity = "0";
+                setTimeout(() => {
+                    loader.style.display = "none";
+                    if (loginContainer) loginContainer.style.display = "block";
+                }, 300);
+            } else if (loginContainer) {
+                loginContainer.style.display = "block";
+            }
+        } else if (!publicPages.includes(currentPage) || isRoot) {
+            // Redirect protected pages OR root to login
             window.location.href = "login.html";
             return;
         }

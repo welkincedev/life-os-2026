@@ -14,6 +14,7 @@ import {
     collection, getDocs, query, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getHabits, getRecentDailyLogs, generateDateKeys } from "./db.js";
 
 let moodChartInstance = null;
 let energyChartInstance = null;
@@ -51,8 +52,8 @@ function initRangeButtons(user) {
 async function loadInsights(user, days) {
     try {
         const [logs, habits] = await Promise.all([
-            fetchDailyLogs(user),
-            fetchHabits(user)
+            getRecentDailyLogs(90),
+            getHabits()
         ]);
 
         // Generate date keys for the range
@@ -119,35 +120,7 @@ async function loadInsights(user, days) {
 // ==========================================
 // FETCH DATA
 // ==========================================
-async function fetchDailyLogs(user) {
-    try {
-        const q = query(
-            collection(db, "users", user.uid, "dailyLogs"),
-            orderBy("date", "desc"),
-            limit(90)
-        );
-        const snap = await getDocs(q);
-        const logs = [];
-        snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
-        return logs;
-    } catch (err) {
-        console.error("Error fetching logs:", err);
-        return [];
-    }
-}
 
-async function fetchHabits(user) {
-    try {
-        const q = query(collection(db, "users", user.uid, "habits"));
-        const snap = await getDocs(q);
-        const habits = [];
-        snap.forEach(d => habits.push({ id: d.id, ...d.data() }));
-        return habits;
-    } catch (err) {
-        console.error("Error fetching habits:", err);
-        return [];
-    }
-}
 
 // ==========================================
 // HABIT HEATMAP
@@ -400,16 +373,7 @@ function chartOptions(label, yLabels, yMin, yMax) {
 // ==========================================
 // HELPERS
 // ==========================================
-function generateDateKeys(days) {
-    const keys = [];
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    }
-    return keys;
-}
+
 
 function setEl(id, text) {
     const el = document.getElementById(id);

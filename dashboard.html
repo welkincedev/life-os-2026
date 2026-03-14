@@ -7,6 +7,7 @@
     <meta name="description" content="Your LifeOS command center — habits, mood, finances, and more at a glance.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
     <script>
         tailwind.config = {
             theme: {
@@ -87,9 +88,9 @@
         @keyframes musicBar1 { 0%,100% { height: 6px; } 50% { height: 18px; } }
         @keyframes musicBar2 { 0%,100% { height: 14px; } 50% { height: 6px; } }
         @keyframes musicBar3 { 0%,100% { height: 10px; } 50% { height: 22px; } }
-        .music-bar-1 { animation: musicBar1 0.8s ease-in-out infinite; }
-        .music-bar-2 { animation: musicBar2 0.7s ease-in-out infinite; }
-        .music-bar-3 { animation: musicBar3 0.9s ease-in-out infinite; }
+        .music-waves.playing .music-bar-1 { animation: musicBar1 0.8s ease-in-out infinite; }
+        .music-waves.playing .music-bar-2 { animation: musicBar2 0.7s ease-in-out infinite; }
+        .music-waves.playing .music-bar-3 { animation: musicBar3 0.9s ease-in-out infinite; }
 
         /* Fade in */
         @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
@@ -127,18 +128,30 @@
             <main class="flex-1 p-6 lg:p-8">
 
                 <!-- Finance Summary Widget -->
-                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-7 grid grid-cols-3 gap-4 fade-up">
-                    <div class="text-center">
-                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Earned</span>
-                        <p class="text-xl font-bold text-green-400" id="dash-earned">+ ₹0</p>
+                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-7 fade-up">
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="text-center">
+                            <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Earned</span>
+                            <p class="text-xl font-bold text-green-400" id="dash-earned">+ ₹0</p>
+                        </div>
+                        <div class="text-center border-l border-r border-border/50">
+                            <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Spent</span>
+                            <p class="text-xl font-bold text-red-400" id="dash-spent">- ₹0</p>
+                        </div>
+                        <div class="text-center">
+                            <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Remaining</span>
+                            <p class="text-xl font-bold text-white" id="dash-net">₹0</p>
+                        </div>
                     </div>
-                    <div class="text-center border-l border-r border-border/50">
-                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Spent</span>
-                        <p class="text-xl font-bold text-red-400" id="dash-spent">- ₹0</p>
-                    </div>
-                    <div class="text-center">
-                        <span class="text-xs text-textMuted uppercase tracking-wider block mb-1">Net</span>
-                        <p class="text-xl font-bold text-white" id="dash-net">₹0</p>
+                    <!-- Budget Progress -->
+                    <div class="pt-4 border-t border-border/30">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-textMuted">Monthly Budget Status</p>
+                            <p class="text-[10px] font-bold text-accent" id="dash-budget-percent">0% used</p>
+                        </div>
+                        <div class="w-full h-1.5 bg-base rounded-full overflow-hidden border border-border/30">
+                            <div id="dash-budget-progress" class="h-full bg-gradient-to-r from-accent to-emerald-400 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -287,13 +300,13 @@
 
 
             <!-- ============ RIGHT WIDGET PANEL ============ -->
-            <aside class="w-full xl:w-[300px] border-t xl:border-t-0 xl:border-l border-border/30 p-5 flex-shrink-0 bg-base/40 pb-20 xl:pb-5">
+            <aside class="w-full xl:w-[320px] border-t xl:border-t-0 xl:border-l border-border/30 p-5 flex-shrink-0 bg-base/20 backdrop-blur-sm pb-20 xl:pb-5 xl:h-[calc(100vh-64px)] xl:overflow-y-auto scrollbar-hide">
 
                 <!-- Music Widget -->
                 <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 mb-5 fade-up">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Now Playing</h3>
-                        <div class="flex items-end gap-[3px]">
+                        <div class="music-waves flex items-end gap-[3px]" id="music-waves">
                             <div class="w-[3px] rounded-full bg-accent music-bar-1"></div>
                             <div class="w-[3px] rounded-full bg-accent music-bar-2"></div>
                             <div class="w-[3px] rounded-full bg-accent music-bar-3"></div>
@@ -302,89 +315,116 @@
                     </div>
 
                     <!-- Album Art -->
-                    <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-accent/20 via-emerald-800/30 to-teal-900/40 mb-4 flex items-center justify-center border border-accent/10 overflow-hidden relative">
-                        <div class="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
-                        <span class="text-5xl relative z-10">🌧️</span>
+                    <div class="w-full aspect-square rounded-2xl bg-gradient-to-br from-accent/20 via-emerald-800/30 to-teal-900/40 mb-4 flex items-center justify-center border border-accent/10 overflow-hidden relative group">
+                        <div class="absolute inset-0 bg-gradient-to-t from-card/90 to-transparent z-0"></div>
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1534214526114-0ea4d47b04f2?auto=format&fit=crop&w=400&q=80')] bg-cover bg-center opacity-40 group-hover:opacity-50 transition-opacity duration-500 z-0 mix-blend-overlay"></div>
+                        <span class="text-5xl relative z-10 drop-shadow-2xl">🌧️</span>
                     </div>
 
-                    <div class="mb-3">
-                        <p class="font-semibold text-sm truncate">Gentle Rain & Thunder</p>
+                    <div class="mb-4">
+                        <p class="font-semibold text-sm truncate text-white">Gentle Rain & Thunder</p>
                         <p class="text-xs text-textMuted truncate">Nature Ambience</p>
                     </div>
 
                     <!-- Progress -->
-                    <div class="mb-3">
-                        <div class="w-full h-1 bg-base rounded-full overflow-hidden">
-                            <div class="h-full bg-accent rounded-full transition-all" id="music-progress" style="width: 35%"></div>
+                    <div class="mb-5">
+                        <div class="w-full h-1.5 bg-base rounded-full overflow-hidden border border-border/30">
+                            <div class="h-full bg-gradient-to-r from-accent to-emerald-400 rounded-full transition-all relative" id="music-progress" style="width: 35%">
+                                <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]"></div>
+                            </div>
                         </div>
-                        <div class="flex justify-between mt-1">
-                            <span class="text-[10px] text-textMuted">1:23</span>
-                            <span class="text-[10px] text-textMuted">3:45</span>
+                        <div class="flex justify-between mt-1.5">
+                            <span class="text-[10px] text-textMuted font-medium">1:23</span>
+                            <span class="text-[10px] text-textMuted font-medium">3:45</span>
                         </div>
                     </div>
 
                     <!-- Controls -->
-                    <div class="flex items-center justify-center gap-5">
-                        <button class="text-textMuted hover:text-textPrimary transition text-sm" id="music-prev">⏮</button>
-                        <button class="w-11 h-11 rounded-full bg-accent hover:bg-accent/90 flex items-center justify-center text-base text-lg transition hover:scale-105 active:scale-95 shadow-lg shadow-accent/20" id="music-play" onclick="toggleMusicPlay()">▶</button>
-                        <button class="text-textMuted hover:text-textPrimary transition text-sm" id="music-next">⏭</button>
-                    </div>
-
-                    <!-- Volume -->
-                    <div class="flex items-center gap-2 mt-4">
-                        <span class="text-xs text-textMuted">🔈</span>
-                        <input type="range" min="0" max="100" value="60" class="flex-1 h-1 accent-accent rounded-full">
-                        <span class="text-xs text-textMuted">🔊</span>
+                    <div class="flex items-center justify-center gap-6">
+                        <button class="text-textMuted hover:text-white transition text-sm" id="music-prev">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                        </button>
+                        <button class="w-12 h-12 rounded-full bg-accent hover:bg-accent/90 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(34,197,94,0.3)]" id="music-play" onclick="toggleMusicPlay()">
+                            <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                        <button class="text-textMuted hover:text-white transition text-sm" id="music-next">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Grow Your Tree Game -->
-                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 fade-up fade-up-delay-1">
-                    <div class="flex items-center justify-between mb-4">
+                <!-- Grow Your Tree Game (Premium Redesign) -->
+                <div class="glow-card bg-card border border-border/50 rounded-2xl p-5 fade-up fade-up-delay-1 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-5 relative z-10">
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-textMuted">Grow Your Tree</h3>
-                        <span class="text-lg">🌳</span>
+                        <div class="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] border border-accent/30 text-accent">Lv.3</div>
                     </div>
 
-                    <!-- Tree Display -->
-                    <div class="w-full aspect-[4/3] rounded-2xl bg-gradient-to-b from-base via-base to-emerald-950/30 mb-4 flex flex-col items-center justify-end pb-4 border border-border/20 relative overflow-hidden">
-                        <!-- Sky stars -->
-                        <div class="absolute top-3 left-4 w-1 h-1 rounded-full bg-white/20"></div>
-                        <div class="absolute top-6 right-6 w-0.5 h-0.5 rounded-full bg-white/30"></div>
-                        <div class="absolute top-4 left-1/2 w-0.5 h-0.5 rounded-full bg-white/20"></div>
+                    <!-- Environment Display -->
+                    <div class="w-full aspect-[4/3] rounded-xl bg-gradient-to-b from-[#0B1121] to-[#0A1A18] mb-5 flex flex-col items-center justify-end pb-3 border border-border/40 relative overflow-hidden shadow-inner">
+                        <!-- Abstract Stars/Particles -->
+                        <div class="absolute top-4 left-6 w-1 h-1 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></div>
+                        <div class="absolute top-10 right-8 w-0.5 h-0.5 rounded-full bg-white/40"></div>
+                        <div class="absolute top-6 left-1/2 w-0.5 h-0.5 rounded-full bg-white/20"></div>
 
-                        <!-- Tree -->
-                        <div class="tree-grow flex flex-col items-center" id="tree-display">
-                            <!-- Leaves -->
-                            <div class="text-4xl mb-[-8px]" id="tree-crown">🌿</div>
-                            <!-- Trunk -->
-                            <div class="w-2 h-10 bg-amber-800 rounded-sm"></div>
+                        <!-- Moon glow -->
+                        <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/5 blur-xl"></div>
+
+                        <!-- Polished Vector Tree (instead of Emojis) -->
+                        <div class="tree-grow relative z-10" id="tree-display">
+                            <svg width="60" height="90" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">
+                                <!-- Trunk -->
+                                <path d="M28 90C28 80 25 70 25 60C25 50 28 40 30 30C32 40 35 50 35 60C35 70 32 80 32 90H28Z" fill="#5D4037"/>
+                                <!-- Branch Left -->
+                                <path d="M28 50C20 45 15 35 15 35" stroke="#5D4037" stroke-width="3" stroke-linecap="round"/>
+                                <!-- Branch Right -->
+                                <path d="M33 45C40 40 45 30 45 30" stroke="#5D4037" stroke-width="3" stroke-linecap="round"/>
+                                
+                                <!-- Leaves (Abstract geometry) -->
+                                <circle cx="30" cy="20" r="20" fill="url(#leaf-gradient)" opacity="0.9"/>
+                                <circle cx="15" cy="30" r="12" fill="url(#leaf-gradient)" opacity="0.8"/>
+                                <circle cx="45" cy="25" r="14" fill="url(#leaf-gradient)" opacity="0.85"/>
+                                <circle cx="30" cy="10" r="10" fill="#22c55e" filter="blur(2px)"/>
+
+                                <defs>
+                                    <linearGradient id="leaf-gradient" x1="30" y1="0" x2="30" y2="40" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#34D399"/>
+                                        <stop offset="1" stop-color="#047857"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
                         </div>
 
-                        <!-- Ground -->
-                        <div class="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-emerald-900/20 to-transparent"></div>
+                        <!-- Ground/Base -->
+                        <div class="absolute bottom-0 left-0 right-0 h-10">
+                            <!-- Curved ground -->
+                            <div class="absolute w-[150%] h-[100px] bg-gradient-to-t from-[#064e3b] to-[#065f46] rounded-[100%] left-[-25%] top-[10px] opacity-80 border-t border-emerald-500/20 shadow-[0_-5px_15px_rgba(6,78,59,0.5)]"></div>
+                        </div>
                     </div>
 
                     <!-- Tree Stats -->
-                    <div class="space-y-3">
+                    <div class="space-y-3 relative z-10">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-textSecondary">Level</span>
-                            <span class="text-xs font-semibold text-accent">Sapling (Lv. 3)</span>
+                            <span class="text-xs font-medium text-textSecondary uppercase tracking-wider">Status</span>
+                            <span class="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-accent">Thriving</span>
                         </div>
                         <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-[10px] text-textMuted">Growth Progress</span>
-                                <span class="text-[10px] text-accent font-medium">65%</span>
+                            <div class="flex justify-between mb-1.5">
+                                <span class="text-[10px] text-textMuted font-medium tracking-wide">EXP TO NEXT LEVEL</span>
+                                <span class="text-[10px] text-emerald-400 font-bold">65 / 100</span>
                             </div>
-                            <div class="w-full h-2 bg-base rounded-full overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-accent to-emerald-400 rounded-full" style="width: 65%"></div>
+                            <div class="w-full h-1.5 bg-base rounded-full overflow-hidden border border-border/30">
+                                <div class="h-full bg-gradient-to-r from-emerald-500 to-accent rounded-full relative overflow-hidden" style="width: 65%">
+                                    <div class="absolute top-0 bottom-0 left-0 right-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMMjAgMEwyMCAyMEgwWiIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjIpIi8+PC9zdmc+')] bg-[length:10px_10px] opacity-50"></div>
+                                </div>
                             </div>
                         </div>
-                        <p class="text-[11px] text-textMuted text-center italic">Complete habits to grow your tree 🌱</p>
                     </div>
 
                     <!-- Water Button -->
-                    <button id="water-tree-btn" class="w-full mt-4 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent text-sm font-medium hover:bg-accent/20 transition active:scale-[0.97]" onclick="waterTree()">
-                        💧 Water Your Tree
+                    <button id="water-tree-btn" class="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-accent/10 to-emerald-500/10 border border-accent/20 text-accent hover:text-white hover:bg-gradient-to-r hover:from-accent hover:to-emerald-500 hover:border-transparent transition-all duration-300 shadow-[0_4px_14px_0_rgba(34,197,94,0.1)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.23)] active:scale-95 flex items-center justify-center gap-2 font-semibold text-sm" onclick="waterTree()">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21c-4.418 0-8-3.582-8-8 0-4.067 5.568-10.457 7.288-12.285a.994.994 0 0 1 1.424 0C14.432 2.543 20 8.933 20 13c0 4.418-3.582 8-8 8zm0-18.067C10.638 4.6 6 9.873 6 13c0 3.309 2.691 6 6 6s6-2.691 6-6c0-3.127-4.638-8.4-6-10.067z"/></svg>
+                        Nurture Tree
                     </button>
                 </div>
             </aside>
@@ -396,7 +436,7 @@
     <script type="module" src="js/firebase.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/db.js"></script>
-    <script src="components/navbar.js"></script>
+    <script type="module" src="components/navbar.js"></script>
     <script src="components/sidebar.js"></script>
     <script src="js/weather.js"></script>
 
@@ -406,7 +446,6 @@
         import { saveDailyLog, getDailyLog, saveUserProfile } from "./js/db.js";
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // Wait for auth, then load today's log & save user profile
         onAuthStateChanged(auth, async (user) => {
             if (!user) return;
 
@@ -416,7 +455,22 @@
             // Load today's existing data
             const log = await getDailyLog();
             if (log) {
-                // Restore values... (same logic as before)
+                // Restore values
+                if (log.mood) {
+                    const moodBtn = document.querySelector(`.mood-btn[onclick*="${log.mood}"]`);
+                    if (moodBtn) moodBtn.classList.add('active');
+                }
+                const energyInput = document.querySelector('input[type="range"]');
+                if (energyInput && log.energy) energyInput.value = log.energy;
+                
+                if (log.task) {
+                    const focusInput = document.getElementById('daily-focus');
+                    if (focusInput) focusInput.value = log.task;
+                }
+                if (log.note) {
+                    const noteInput = document.getElementById('daily-note');
+                    if (noteInput) noteInput.value = log.note;
+                }
             }
             
             // Wire Live Habits & Finance
@@ -465,7 +519,17 @@
                 
                 if (spentEl) spentEl.textContent = `- ₹${expense.toLocaleString()}`;
                 if (earnedEl) earnedEl.textContent = `+ ₹${income.toLocaleString()}`;
-                if (netEl) netEl.textContent = `${income >= expense ? '+' : ''} ₹${(income - expense).toLocaleString()}`;
+                if (netEl) netEl.textContent = `₹${(income - expense).toLocaleString()}`;
+                
+                // Update budget bar
+                const budgetProgress = document.getElementById('dash-budget-progress');
+                const budgetPercent = document.getElementById('dash-budget-percent');
+                if (budgetProgress && budgetPercent) {
+                    const pct = income > 0 ? Math.min(100, Math.round((expense / income) * 100)) : (expense > 0 ? 100 : 0);
+                    budgetProgress.style.width = `${pct}%`;
+                    budgetPercent.textContent = `${pct}% of income used`;
+                    if (pct > 90) budgetProgress.classList.replace('from-accent', 'from-red-500');
+                }
                 
             } catch (err) { console.error("Error loading dashboard live data:", err); }
         }
@@ -545,7 +609,22 @@
 
     <!-- ===================== JAVASCRIPT (non-module UI logic) ===================== -->
     <script>
-        // --- Date (greeting is set by auth.js dynamically) ---
+        // --- Music Player Toggle ---
+        window.toggleMusicPlay = function() {
+            const waves = document.getElementById('music-waves');
+            const btn = document.getElementById('music-play');
+            if (!waves || !btn) return;
+
+            const isPlaying = waves.classList.toggle('playing');
+            btn.innerHTML = isPlaying 
+                ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' 
+                : '<svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            
+            // If we had real audio:
+            // if(isPlaying) audio.play(); else audio.pause();
+        };
+
+        // --- Date ---
         (function setDate() {
             const dateEl = document.getElementById('date-text');
             if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', {

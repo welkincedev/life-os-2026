@@ -17,6 +17,7 @@ import {
     query, orderBy, Timestamp, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDateKey, getTodayKey, escapeHtml } from "./db.js";
 
 let currentUser = null;
 let allHabits = [];
@@ -67,14 +68,7 @@ async function loadHabitsFromDB(user) {
 // ==========================================
 // STREAK CALCULATION
 // ==========================================
-function getTodayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
-function getDateKey(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
 
 function calcCurrentStreak(completedDates) {
     if (!completedDates?.length) return 0;
@@ -298,7 +292,7 @@ function renderHabitList(habits, user) {
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 mb-0.5">
                                 <span class="text-lg">${icon}</span>
-                                <p class="font-semibold text-sm ${completedToday ? 'line-through text-textMuted' : ''} truncate">${habit.name}</p>
+                                <p class="font-semibold text-sm ${completedToday ? 'line-through text-textMuted' : ''} truncate">${escapeHtml(habit.name)}</p>
                                 <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg border ${catColors[cat] || catColors.life}">${catIcons[cat] || "🌱"} ${cat}</span>
                             </div>
                             <div class="flex items-center gap-3 mt-1">

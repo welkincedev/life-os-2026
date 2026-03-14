@@ -33,10 +33,33 @@ import {
 // HELPERS
 // ============================
 
+/** Escape HTML to prevent XSS */
+export function escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/** Get any date as "YYYY-MM-DD" */
+export function getDateKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 /** Get today's date as "YYYY-MM-DD" */
-function getTodayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function getTodayKey() {
+    return getDateKey(new Date());
+}
+
+/** Generate an array of "YYYY-MM-DD" keys for the last X days */
+export function generateDateKeys(days = 7) {
+    const keys = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        keys.push(getDateKey(d));
+    }
+    return keys;
 }
 
 /** Get current user UID or throw */
@@ -44,6 +67,26 @@ function getUid() {
     const user = auth.currentUser;
     if (!user) throw new Error("Not authenticated");
     return user.uid;
+}
+
+/** 
+ * Wraps a promise in a strict timeout. 
+ * Prevents Infinite hanging when Firestore isn't connected.
+ */
+function withTimeout(promise, ms = 5000, operationName = 'Database operation') {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            reject(new Error(`${operationName} timed out after ${ms}ms. Check your Firebase connection or ensure the Firestore database is created.`));
+        }, ms);
+    });
+
+    return Promise.race([
+        promise,
+        timeoutPromise
+    ]).finally(() => {
+        clearTimeout(timeoutId);
+    });
 }
 
 /** Reference to a user subcollection */
@@ -67,12 +110,12 @@ function userDoc(subcollection, docId) {
 export async function saveUserProfile(user) {
     try {
         const ref = doc(db, "users", user.uid);
-        await setDoc(ref, {
+        await withTimeout(setDoc(ref, {
             displayName: user.displayName || null,
             email: user.email || null,
             photoURL: user.photoURL || null,
             lastLogin: serverTimestamp()
-        }, { merge: true }); // merge: true = create if missing, update if exists
+        }, { merge: true }), 5000, 'saveUserProfile'); // merge: true = create if missing, update if exists
         console.log("✅ User profile saved");
     } catch (err) {
         console.error("❌ Error saving user profile:", err);
@@ -100,7 +143,7 @@ export async function saveDailyLog(data) {
         const dateKey = getTodayKey();
         const ref = userDoc("dailyLogs", dateKey);
 
-        await setDoc(ref, {
+        await withTimeout(setDoc(ref, {
             date: dateKey,
             mood: data.mood || null,
             energy: data.energy || null,
@@ -109,12 +152,12 @@ export async function saveDailyLog(data) {
             note: data.note || "",
             habitsCompleted: data.habitsCompleted || [],
             updatedAt: serverTimestamp()
-        }, { merge: true });
+        }, { merge: true }), 5000, 'saveDailyLog');
 
         // Set createdAt only on first write (merge won't overwrite)
         const snap = await getDoc(ref);
         if (!snap.data()?.createdAt) {
-            await updateDoc(ref, { createdAt: serverTimestamp() });
+            await withTimeout(updateDoc(ref, { createdAt: serverTimestamp() }), 5000, 'saveDailyLog.updateDoc');
         }
 
         console.log("✅ Daily log saved for", dateKey);
@@ -190,14 +233,14 @@ export async function getRecentDailyLogs(count = 7) {
  */
 export async function addHabit(data) {
     try {
-        const ref = await addDoc(userCollection("habits"), {
+        const ref = await withTimeout(addDoc(userCollection("habits"), {
             name: data.name,
             icon: data.icon || "📌",
             frequency: data.frequency || "daily",
             timeOfDay: data.timeOfDay || null,
             completedDates: [],
             createdAt: serverTimestamp()
-        });
+        }), 5000, 'addHabit');
 
         console.log("✅ Habit added:", data.name, ref.id);
         return { success: true, id: ref.id };
@@ -231,16 +274,16 @@ export async function toggleHabitCompletion(habitId) {
 
         if (isCompleted) {
             // Un-check: remove today from array
-            await updateDoc(ref, {
+            await withTimeout(updateDoc(ref, {
                 completedDates: arrayRemove(today)
-            });
+            }), 5000, 'toggleHabitCompletion.remove');
             console.log("⬜ Habit unchecked:", habitId);
             return { success: true, completed: false };
         } else {
             // Check: add today to array
-            await updateDoc(ref, {
+            await withTimeout(updateDoc(ref, {
                 completedDates: arrayUnion(today)
-            });
+            }), 5000, 'toggleHabitCompletion.add');
             console.log("✅ Habit checked:", habitId);
             return { success: true, completed: true };
         }
@@ -279,7 +322,7 @@ export async function getHabits() {
  */
 export async function deleteHabit(habitId) {
     try {
-        await deleteDoc(userDoc("habits", habitId));
+        await withTimeout(deleteDoc(userDoc("habits", habitId)), 5000, 'deleteHabit');
         console.log("🗑️ Habit deleted:", habitId);
         return { success: true };
     } catch (err) {
@@ -341,7 +384,7 @@ export function calculateStreak(completedDates) {
  */
 export async function addTransaction(data) {
     try {
-        const ref = await addDoc(userCollection("transactions"), {
+        const ref = await withTimeout(addDoc(userCollection("transactions"), {
             type: data.type,
             amount: data.amount,
             description: data.description || "",
@@ -351,7 +394,7 @@ export async function addTransaction(data) {
             note: data.note || "",
             date: data.date || getTodayKey(),
             createdAt: serverTimestamp()
-        });
+        }), 5000, 'addTransaction');
         console.log("✅ Transaction added:", ref.id);
         return { success: true, id: ref.id };
     } catch (err) {
@@ -411,14 +454,14 @@ export async function getTransactions(startDate, endDate) {
  */
 export async function saveJournalEntry(data) {
     try {
-        const ref = await addDoc(userCollection("journalEntries"), {
+        const ref = await withTimeout(addDoc(userCollection("journalEntries"), {
             title: data.title || "Untitled",
             content: data.content || "",
             tags: data.tags || [],
             mood: data.mood || null,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-        });
+        }), 5000, 'saveJournalEntry');
         console.log("✅ Journal entry saved:", ref.id);
         return { success: true, id: ref.id };
     } catch (err) {
@@ -474,7 +517,10 @@ window.LifeOSDB = {
     // User
     saveUserProfile,
     // Helpers
-    getTodayKey
+    getDateKey,
+    getTodayKey,
+    generateDateKeys,
+    escapeHtml
 };
 
 console.log("🗄️ LifeOS Database module loaded");

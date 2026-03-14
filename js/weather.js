@@ -6,28 +6,29 @@
  * Caches in localStorage for 15 minutes.
  */
 
-// 🔑 Your OpenWeather API key
-const OPENWEATHER_API_KEY = CONFIG.weatherKey;
+
 
 // Fallback if all location methods fail
 const FALLBACK_CITY = "Alappuzha";
 const CACHE_KEY = "lifeos_weather";
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
-// Weather condition → emoji
-const weatherEmojis = {
-    "Clear": "☀️", "Clouds": "☁️", "Rain": "🌧️", "Drizzle": "🌦️",
-    "Thunderstorm": "⛈️", "Snow": "❄️", "Mist": "🌫️", "Haze": "🌫️",
-    "Fog": "🌫️", "Smoke": "🌫️", "Dust": "🌪️", "Sand": "🌪️",
-    "Tornado": "🌪️", "Squall": "💨", "Ash": "🌋"
+// WMO Weather Codes → Emoji mapping
+// Ref: https://open-meteo.com/en/docs
+const wmoToEmoji = (code) => {
+    if (code === 0) return "☀️"; // Clear sky
+    if (code >= 1 && code <= 3) return "⛅"; // Mainly clear, partly cloudy, and overcast
+    if (code >= 45 && code <= 48) return "🌫️"; // Fog
+    if (code >= 51 && code <= 55) return "🌦️"; // Drizzle
+    if (code >= 61 && code <= 65) return "🌧️"; // Rain
+    if (code >= 66 && code <= 67) return "🌨️"; // Freezing Rain
+    if (code >= 71 && code <= 77) return "❄️"; // Snow
+    if (code >= 80 && code <= 82) return "🌧️"; // Rain showers
+    if (code >= 85 && code <= 86) return "❄️"; // Snow showers
+    if (code === 95) return "⛈️"; // Thunderstorm
+    if (code >= 96 && code <= 99) return "⛈️"; // Thunderstorm with hail
+    return "🌡️";
 };
-
-function getEmoji(main, iconCode) {
-    const isNight = iconCode?.endsWith("n");
-    if (main === "Clear") return isNight ? "🌙" : "☀️";
-    if (main === "Clouds" && (iconCode === "02d" || iconCode === "02n")) return "⛅";
-    return weatherEmojis[main] || "🌡️";
-}
 
 // ==========================================
 // MAIN FETCH
@@ -45,44 +46,45 @@ async function fetchWeather() {
     updateUI({ city: "Loading", temp: "...", icon: "⏳", description: "" });
 
     try {
-        // Step 1: Try getting location
-        let apiUrl = null;
+        // Step 1: Try getting coordinates
+        let lat, lon, city;
 
         // Try browser geolocation
         const coords = await getBrowserLocation();
         if (coords) {
             console.log("📍 Got geolocation:", coords.lat, coords.lon);
-            apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&units=metric&appid=${OPENWEATHER_API_KEY}`;
-        }
-
-        // Fallback: Try IP-based location
-        if (!apiUrl) {
+            lat = coords.lat;
+            lon = coords.lon;
+            city = "Current Location"; // Or fetch name via reverse geocoding if needed
+        } else {
+            // Fallback: Try IP-based location
             console.log("📍 Geolocation unavailable, trying IP lookup...");
-            const ipCity = await getIPCity();
-            const city = ipCity || FALLBACK_CITY;
-            console.log("📍 Using city:", city);
-            apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+            const ipData = await getIPData();
+            lat = ipData?.lat || 9.4981; // Alappuzha fallback
+            lon = ipData?.lon || 76.3329;
+            city = ipData?.city || FALLBACK_CITY;
         }
 
-        // Step 2: Fetch weather
-        console.log("🌐 Fetching weather...");
+        // Step 2: Fetch weather from Open-Meteo (No API key required!)
+        console.log("🌐 Fetching weather from Open-Meteo...");
+        const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+        
         const res = await fetch(apiUrl);
         const data = await res.json();
 
-        if (!res.ok) {
-            throw new Error(data.message || `API error ${res.status}`);
-        }
+        if (!res.ok) throw new Error("Weather API error");
 
+        const current = data.current_weather;
         const weather = {
-            city: data.name || FALLBACK_CITY,
-            temp: `${Math.round(data.main.temp)}°C`,
-            icon: getEmoji(data.weather[0]?.main, data.weather[0]?.icon),
-            description: data.weather[0]?.description || ""
+            city: city,
+            temp: `${Math.round(current.temperature)}°C`,
+            icon: wmoToEmoji(current.weathercode),
+            description: `Wind: ${current.windspeed} km/h`
         };
 
         cacheWeather(weather);
         updateUI(weather);
-        console.log(`✅ Weather: ${weather.icon} ${weather.city} • ${weather.temp} (${weather.description})`);
+        console.log(`✅ Weather: ${weather.icon} ${weather.city} • ${weather.temp}`);
 
     } catch (err) {
         console.error("❌ Weather failed:", err.message);
@@ -128,12 +130,17 @@ function getBrowserLocation() {
 // ==========================================
 // LOCATION: IP-based fallback
 // ==========================================
-async function getIPCity() {
+async function getIPData() {
     try {
+        // Using extreme-ip-lookup or ipapi.co
         const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(3000) });
         if (!res.ok) return null;
         const data = await res.json();
-        return data.city || null;
+        return {
+            city: data.city,
+            lat: data.latitude,
+            lon: data.longitude
+        };
     } catch {
         return null;
     }

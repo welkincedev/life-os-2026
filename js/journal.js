@@ -20,6 +20,7 @@ import {
     query, orderBy, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getTodayKey, escapeHtml } from "./db.js";
 
 let currentUser = null;
 let allEntries = [];
@@ -140,6 +141,9 @@ window._saveEntry = async function (type) {
         console.error("Error saving entry:", err);
         alert("Failed to save entry. Please check your connection.");
     } finally {
+        // Reset button state (specific to type)
+        const btnId = `${type}-save-btn`; // Assuming IDs follow this pattern
+        const btn = document.getElementById(btnId);
         if (btn) {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -356,10 +360,7 @@ window._updateEntry = async function () {
 // ==========================================
 // HELPERS
 // ==========================================
-function getTodayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+
 
 function formatDate(dateStr) {
     try {
@@ -377,8 +378,4 @@ function formatDate(dateStr) {
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-}
+

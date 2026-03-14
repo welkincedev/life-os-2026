@@ -15,6 +15,7 @@ import {
     query, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getTodayKey, escapeHtml } from "./db.js";
 
 onAuthStateChanged(auth, (user) => {
     if (user) initMoney(user);
@@ -24,10 +25,7 @@ let selectedType = "expense";
 let selectedMethod = "upi";
 let selectedMood = "neutral";
 
-function getTodayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+
 
 function getCurrentMonthRange() {
     const now = new Date();
@@ -277,7 +275,7 @@ async function loadTransactions(user, filterType = "all") {
                             ${catIcon}
                         </div>
                         <div class="min-w-0 flex-1">
-                            <p class="font-medium text-sm truncate">${note || txn.category}</p>
+                            <p class="font-medium text-sm truncate">${escapeHtml(note || txn.category)}</p>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span class="text-textMuted text-[11px]">${txn.category}</span>
                                 <span class="text-textMuted/30 text-[11px]">•</span>

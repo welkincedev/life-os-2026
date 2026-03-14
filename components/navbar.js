@@ -1,9 +1,9 @@
 /**
- * navbar.js — Top Navigation Bar Component
- * 
- * Injects a consistent navigation bar across all pages.
- * Includes: logo, page title, user avatar, sign-out button, mobile menu toggle.
+ * navbar.js — Top Navigation Bar Component (ES Module)
  */
+
+import { LifeOSDB as db, escapeHtml } from "./db.js";
+import { auth } from "./firebase.js";
 
 (function () {
     const container = document.getElementById("navbar-container");
@@ -45,11 +45,14 @@
                         <span id="nav-weather-text" class="text-gray-400 text-xs font-medium">Loading...</span>
                     </div>
 
-                    <!-- Search (placeholder) -->
-                    <button onclick="alert('Search functionality coming soon!')" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition">
-                        🔍 Search...
-                        <kbd class="text-[10px] bg-card border border-border px-1.5 py-0.5 rounded ml-2">⌘K</kbd>
-                    </button>
+                    <!-- Search -->
+                    <div class="relative">
+                        <button onclick="toggleSearch()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition group">
+                            <span class="group-hover:scale-110 transition-transform">🔍</span> 
+                            <span>Search...</span>
+                            <kbd class="text-[10px] bg-card border border-border px-1.5 py-0.5 rounded ml-2 group-hover:bg-border transition">⌘K</kbd>
+                        </button>
+                    </div>
 
                     <!-- Notifications -->
                     <div class="relative">
@@ -83,6 +86,27 @@
                             <button onclick="window.lifeosSignOut()" class="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/[0.04] rounded-lg transition mt-1">🚪 Sign Out</button>
                         </div>
                     </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Modal -->
+            <div id="search-modal" class="fixed inset-0 z-[60] flex items-start justify-center pt-20 px-4 hidden">
+                <div class="absolute inset-0 bg-base/80 backdrop-blur-sm" onclick="toggleSearch()"></div>
+                <div class="relative w-full max-w-xl bg-card border border-border shadow-2xl rounded-2xl overflow-hidden fade-up">
+                    <div class="p-4 border-b border-border/50 flex items-center gap-3">
+                        <span class="text-xl">🔍</span>
+                        <input id="search-input" type="text" placeholder="Search habits, journal, transactions..." 
+                            class="w-full bg-transparent border-none outline-none text-textPrimary placeholder:text-textMuted py-2"
+                            oninput="performSearch(this.value)">
+                        <kbd class="text-[10px] text-textMuted border border-border rounded px-1.5 py-0.5">ESC</kbd>
+                    </div>
+                    <div id="search-results" class="max-h-[400px] overflow-y-auto p-2">
+                        <div class="p-8 text-center text-textMuted">
+                            <p class="text-sm">Type anything to search across LifeOS...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -106,6 +130,99 @@
         }
     });
 
+    // --- Search Logic ---
+    window.toggleSearch = () => {
+        const modal = document.getElementById('search-modal');
+        if (!modal) return;
+        const isHidden = modal.classList.toggle('hidden');
+        if (!isHidden) {
+            const input = document.getElementById('search-input');
+            setTimeout(() => input?.focus(), 100);
+        }
+    };
+
+    window.performSearch = async (query) => {
+        const resultsEl = document.getElementById('search-results');
+        if (!resultsEl) return;
+        if (!query || query.length < 2) {
+            resultsEl.innerHTML = `<div class="p-8 text-center text-textMuted text-sm">Type at least 2 characters to search...</div>`;
+            return;
+        }
+
+        const db = window.LifeOSDB;
+        if (!db) return;
+
+        resultsEl.innerHTML = `<div class="p-8 text-center text-textMuted animate-pulse text-sm">Searching...</div>`;
+
+        try {
+            // Fetch relevant data in parallel
+            const [habits, journal, transactions] = await Promise.all([
+                db.getHabits(),
+                db.getJournalEntries(50),
+                db.getTransactions()
+            ]);
+
+            const q = query.toLowerCase();
+            const results = [];
+
+            // Search habits
+            habits.forEach(h => {
+                if (h.name.toLowerCase().includes(q)) {
+                    results.push({ type: 'habit', title: h.name, subtitle: `${h.frequency} habit`, icon: h.icon || '✅', link: 'habits.html' });
+                }
+            });
+
+            // Search journal
+            journal.forEach(e => {
+                if (e.title.toLowerCase().includes(q) || e.content.toLowerCase().includes(q)) {
+                    results.push({ type: 'journal', title: e.title, subtitle: e.content.substring(0, 60) + '...', icon: '📝', link: 'journal.html' });
+                }
+            });
+
+            // Search finance
+            transactions.forEach(t => {
+                const note = (t.note || t.description || "").toLowerCase();
+                if (note.includes(q) || t.category.toLowerCase().includes(q)) {
+                    results.push({ type: 'money', title: t.note || t.category, subtitle: `₹${t.amount.toLocaleString()} • ${t.date}`, icon: t.type === 'income' ? '💰' : '💸', link: 'money.html' });
+                }
+            });
+
+            if (results.length === 0) {
+                resultsEl.innerHTML = `<div class="p-8 text-center text-textMuted text-sm">No results found for "${query}"</div>`;
+                return;
+            }
+
+            resultsEl.innerHTML = results.map(r => `
+                <a href="${r.link}" class="flex items-center gap-4 p-3 rounded-xl hover:bg-cardHover border border-transparent hover:border-border/30 transition group mb-1">
+                    <div class="w-10 h-10 rounded-xl bg-base border border-border/50 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                        ${r.icon}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-textPrimary truncate">${escapeHtml(r.title)}</p>
+                        <p class="text-[11px] text-textMuted truncate">${escapeHtml(r.subtitle)}</p>
+                    </div>
+                    <span class="text-textMuted opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                </a>
+            `).join("");
+
+        } catch (err) {
+            console.error("Search failed:", err);
+            resultsEl.innerHTML = `<div class="p-8 text-center text-red-400 text-sm">Oops! Something went wrong while searching.</div>`;
+        }
+    };
+
+    // Shortcut: Cmd/Ctrl + K
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            toggleSearch();
+        }
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('search-modal');
+            if (modal && !modal.classList.contains('hidden')) modal.classList.add('hidden');
+        }
+    });
+
     // Mobile sidebar toggle
     const menuToggle = document.getElementById("menu-toggle");
     if (menuToggle) {
@@ -115,10 +232,14 @@
         });
     }
 
-    // Set user initial from auth
-    if (window.lifeosUser) {
-        const initial = window.lifeosUser.displayName?.[0] || window.lifeosUser.email?.[0] || "?";
-        document.getElementById("user-menu-btn").textContent = initial.toUpperCase();
-        document.getElementById("user-display-name").textContent = window.lifeosUser.displayName || window.lifeosUser.email || "User";
+    // Set user initial from auth (if already set)
+    const user = window.LifeOS?.user;
+    if (user) {
+        const initial = user.displayName?.[0] || user.email?.[0] || "?";
+        const btn = document.getElementById("user-menu-btn");
+        if (btn) btn.textContent = initial.toUpperCase();
+        
+        const nameEl = document.getElementById("profile-user-name"); // fix ID based on template above
+        if (nameEl) nameEl.textContent = user.displayName || user.email?.split('@')[0] || "User";
     }
 })();
