@@ -11,14 +11,23 @@ import { getAuth, setPersistence, browserLocalPersistence } from "https://www.gs
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // 🔑 Firebase Configuration
+// Your web app's Firebase configuration
+// Import the functions you need from the SDKs you need
+// import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyACim10-pTh8fGb0kxioW_vnytdmSVqXbA",
+    apiKey: "AIzaSyDcjITfDmWurcks7LUD4yYo4ph9t0aGUnE",
     authDomain: "lifeos-2026-9aa0a.firebaseapp.com",
     projectId: "lifeos-2026-9aa0a",
     storageBucket: "lifeos-2026-9aa0a.firebasestorage.app",
     messagingSenderId: "1016084626405",
-    appId: "1:1016084626405:web:dd46e685b791eddd104d0c"
+    appId: "1:1016084626405:web:52fd571db9568b56104d0c"
 };
+
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
