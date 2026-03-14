@@ -12,14 +12,13 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebas
 
 // 🔑 Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAB5tykpO1JAnMZEXb1Mv9_gKTQNGegjQ0",
-    authDomain: "lifeos2026-f4af9.firebaseapp.com",
-    projectId: "lifeos2026-f4af9",
-    storageBucket: "lifeos2026-f4af9.firebasestorage.app",
-    messagingSenderId: "601136076575",
-    appId: "1:601136076575:web:f06ae8e19201486c6c822a"
+    apiKey: "AIzaSyACim10-pTh8fGb0kxioW_vnytdmSVqXbA",
+    authDomain: "lifeos-2026-9aa0a.firebaseapp.com",
+    projectId: "lifeos-2026-9aa0a",
+    storageBucket: "lifeos-2026-9aa0a.firebasestorage.app",
+    messagingSenderId: "1016084626405",
+    appId: "1:1016084626405:web:dd46e685b791eddd104d0c"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
