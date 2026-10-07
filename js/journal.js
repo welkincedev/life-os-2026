@@ -104,8 +104,16 @@ window._saveEntry = async function (type) {
         content = document.getElementById("letter-content")?.value?.trim();
         title = to ? `Letter to ${to}` : "Unsent Letter";
         if (!content) return;
-        // Prepend "Dear X" to content for storage
         if (to) content = `Dear ${to},\n\n${content}`;
+    }
+
+    const btnId = `${type}-save-btn`;
+    const btn = document.getElementById(btnId);
+    let originalText = btn ? btn.textContent : "Save";
+
+    if (btn) {
+        btn.textContent = "Saving...";
+        btn.disabled = true;
     }
 
     try {
@@ -124,7 +132,8 @@ window._saveEntry = async function (type) {
         } else if (type === "idea") {
             document.getElementById("idea-input").value = "";
         } else if (type === "letter") {
-            document.getElementById("letter-to").value = "";
+            const letterToEl = document.getElementById("letter-to");
+            if (letterToEl) letterToEl.value = "";
             document.getElementById("letter-content").value = "";
         }
 
@@ -137,8 +146,6 @@ window._saveEntry = async function (type) {
         console.error("Error saving entry:", err);
         alert("Failed to save entry. Please check your connection.");
     } finally {
-        const btnId = `${type}-save-btn`;
-        const btn = document.getElementById(btnId);
         if (btn) {
             btn.textContent = originalText;
             btn.disabled = false;

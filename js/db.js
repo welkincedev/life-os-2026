@@ -454,18 +454,48 @@ export async function getTransactions(startDate, endDate) {
  */
 export async function saveJournalEntry(data) {
     try {
-        const ref = await withTimeout(addDoc(userCollection("journalEntries"), {
-            title: data.title || "Untitled",
-            content: data.content || "",
-            tags: data.tags || [],
-            mood: data.mood || null,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        }), 5000, 'saveJournalEntry');
-        console.log("✅ Journal entry saved:", ref.id);
-        return { success: true, id: ref.id };
+        if (data.id) {
+            const ref = userDoc("journalEntries", data.id);
+            await withTimeout(setDoc(ref, {
+                title: data.title || "Untitled",
+                content: data.content || "",
+                tags: data.tags || [],
+                mood: data.mood || null,
+                type: data.type || "daily",
+                updatedAt: serverTimestamp()
+            }, { merge: true }), 5000, 'saveJournalEntry');
+            console.log("✅ Journal entry updated:", data.id);
+            return { success: true, id: data.id };
+        } else {
+            const ref = await withTimeout(addDoc(userCollection("journalEntries"), {
+                type: data.type || "daily",
+                title: data.title || "Untitled",
+                content: data.content || "",
+                tags: data.tags || [],
+                mood: data.mood || null,
+                date: data.date || getTodayKey(),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            }), 5000, 'saveJournalEntry');
+            console.log("✅ Journal entry saved:", ref.id);
+            return { success: true, id: ref.id };
+        }
     } catch (err) {
         console.error("❌ Error saving journal entry:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Delete a journal entry.
+ */
+export async function deleteJournalEntry(entryId) {
+    try {
+        await withTimeout(deleteDoc(userDoc("journalEntries", entryId)), 5000, 'deleteJournalEntry');
+        console.log("🗑️ Journal entry deleted:", entryId);
+        return { success: true };
+    } catch (err) {
+        console.error("❌ Error deleting journal entry:", err);
         return { success: false, error: err.message };
     }
 }
@@ -558,6 +588,7 @@ export const LifeOSDB = {
     deleteTransaction,
     // Journal
     saveJournalEntry,
+    deleteJournalEntry,
     getJournalEntries,
     // Tree Stats
     getTreeStats,

@@ -43,6 +43,12 @@ if (navContainer) {
                         <span id="nav-weather-text" class="text-gray-400 text-xs font-medium">Loading...</span>
                     </div>
 
+                    <!-- Quick Capture Button -->
+                    <button onclick="window.toggleQuickCapture && window.toggleQuickCapture()" title="Quick Capture (Cmd+Shift+K)" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent/10 border border-accent/20 text-accent text-xs font-semibold hover:bg-accent/20 transition active:scale-95">
+                        <span>⚡</span>
+                        <span>Capture</span>
+                    </button>
+
                     <!-- Search (desktop) -->
                     <div class="relative hidden md:block">
                         <button onclick="toggleSearch()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-base border border-border/40 text-textMuted text-sm hover:border-accent/40 transition group">
